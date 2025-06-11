@@ -1,29 +1,43 @@
 {
-  "name": "prefilter-ai",
+  "name": "hack",
   "version": "1.0.0",
-  "description": "芸能人・インフルエンサーのSNS投稿を投稿前にAIでチェックするサービス",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "build:extension": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "jest"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack --watch --mode=development",
+    "dev:chrome": "webpack --watch --mode=development --env target=chrome",
+    "build": "webpack --mode=production",
+    "build:chrome": "webpack --mode=production --env target=chrome",
+    "clean": "rimraf dist"
   },
-  "private": true,
-  "dependencies": {
-    "next": "^13.4.19",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RAGdoll-hack/hack01.git"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RAGdoll-hack/hack01/issues"
+  },
+  "homepage": "https://github.com/RAGdoll-hack/hack01#readme",
+  "description": "",
   "devDependencies": {
-    "@types/node": "^20.5.9",
-    "@types/react": "^18.2.21",
-    "autoprefixer": "^10.4.15",
-    "jest": "^29.6.4",
-    "postcss": "^8.4.29",
-    "tailwindcss": "^3.3.3",
-    "typescript": "^5.2.2"
+    "@babel/core": "^7.27.4",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-typescript": "^7.24.7",
+    "@types/chrome": "^0.0.260",
+    "babel-loader": "^10.0.0",
+    "clean-webpack-plugin": "^4.0.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.3",
+    "rimraf": "^6.0.1",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
   }
 }
