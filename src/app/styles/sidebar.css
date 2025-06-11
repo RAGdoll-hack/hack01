@@ -1,0 +1,235 @@
+/**
+ * サイドバースタイル
+ * 
+ * Chrome拡張機能のサイドバーUIのスタイルを定義します。
+ * 設定画面と空の画面の両方のスタイルを含みます。
+ */
+
+body {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    max-width: 100%;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.header-text {
+    text-align: center;
+    flex: 1;
+}
+
+.header h1 {
+    font-size: 22px;
+    margin-bottom: 5px;
+    color: #1a73e8;
+    font-weight: 600;
+}
+
+.header p {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 設定画面のスタイル */
+#settingsView {
+    background: linear-gradient(145deg, #ffffff, #f0f0f0);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.setting-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.setting-item label {
+    font-weight: 500;
+    color: #444;
+}
+
+/* カスタムチェックボックス */
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 40px;
+    height: 20px;
+    background-color: #ccc;
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+input[type="checkbox"]:checked {
+    background-color: #4285f4;
+}
+
+input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: white;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+input[type="checkbox"]:checked::before {
+    transform: translateX(20px);
+}
+
+.btn {
+    background: linear-gradient(145deg, #4285f4, #3b78e7);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    width: 100%;
+    margin-top: 12px;
+    box-shadow: 0 2px 5px rgba(66, 133, 244, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    background: linear-gradient(145deg, #3b78e7, #3367d6);
+    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn:active {
+    background-color: #2a56c6;
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(66, 133, 244, 0.3);
+}
+
+.toggle-btn {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-btn:hover {
+    background-color: #e1e1e1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.status {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+/* 空の画面のスタイル */
+#emptyView {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.empty-view {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 30px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    width: 100%;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.empty-view p {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* ビューの切り替えアニメーション */
+.view {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.view.active {
+    display: block;
+    opacity: 1;
+}

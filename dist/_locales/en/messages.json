@@ -1,0 +1,30 @@
+{
+  "appName": {
+    "message": "My Chrome Extension",
+    "description": "The name of the Chrome extension"
+  },
+  "appShortName": {
+    "message": "ChromeExt",
+    "description": "The short name of the Chrome extension"
+  },
+  "appDescription": {
+    "message": "Chrome拡張機能のサンプルプロジェクト",
+    "description": "The description of the Chrome extension"
+  },
+  "enableExtension": {
+    "message": "Enable extension",
+    "description": "Label for the enable extension checkbox"
+  },
+  "saveSettings": {
+    "message": "Save settings",
+    "description": "Label for the save settings button"
+  },
+  "settingsSaved": {
+    "message": "Settings saved successfully",
+    "description": "Message shown when settings are saved successfully"
+  },
+  "settingsSaveFailed": {
+    "message": "Failed to save settings",
+    "description": "Message shown when settings fail to save"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "My Chrome Extension",
+  "short_name": "ChromeExt",
+  "version": "1.0.0",
+  "description": "Chrome拡張機能のサンプルプロジェクト",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "images/icon.png"
+  },
+  "icons": {
+    "16": "images/icon.png",
+    "48": "images/icon.png",
+    "128": "images/icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "pages/sidebar.html"
+  },
+  "permissions": [
+    "storage",
+    "sidePanel"
+  ],
+  "default_locale": "en"
+}
