@@ -6,6 +6,16 @@
  */
 
 /**
+ * 定数定義
+ */
+const PROCESSING_DELAY = 1500; // 処理時間のシミュレート用遅延（ミリ秒）
+
+const DEFAULT_OPTIONS = {
+    LANGUAGE: 'ja',
+    WITH_TIMESTAMPS: true
+};
+
+/**
  * 動画ファイルから音声を抽出し、文字起こしを行います
  * @param {Buffer|string} videoData - 動画データまたはファイルパス
  * @param {Object} options - 文字起こしオプション
@@ -13,13 +23,29 @@
  * @param {boolean} options.withTimestamps - タイムスタンプを含めるかどうか（デフォルト: true）
  * @returns {Promise<Object>} 文字起こし結果
  */
-export async function transcribeVideo(videoData, options = { language: 'ja', withTimestamps: true }) {
+export async function transcribeVideo(
+    videoData: Buffer | string,
+    options: { language: string; withTimestamps: boolean } = {
+        language: DEFAULT_OPTIONS.LANGUAGE,
+        withTimestamps: DEFAULT_OPTIONS.WITH_TIMESTAMPS
+    }
+): Promise<{
+    text: string;
+    segments?: Array<{
+        id: number;
+        start: number;
+        end: number;
+        text: string;
+    }>;
+    language: string;
+    duration: number;
+}> {
   // 実際の実装では、動画から音声を抽出し、Whisper APIに送信します
   // ここではモックデータを返します
-  
+
   // 処理時間をシミュレート
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
+    await new Promise(resolve => setTimeout(resolve, PROCESSING_DELAY));
+
   const mockTranscription = {
     text: "こんにちは、今日は新製品の発表会についてお話しします。この製品は多くの人々の生活を変える可能性を秘めています。詳細については後ほど説明しますが、とても革新的な機能が搭載されています。それでは、具体的な特徴を見ていきましょう。",
     segments: [
@@ -51,7 +77,7 @@ export async function transcribeVideo(videoData, options = { language: 'ja', wit
     language: options.language,
     duration: 21.3
   };
-  
+
   // タイムスタンプなしのオプションが指定された場合
   if (!options.withTimestamps) {
     return {
@@ -60,7 +86,7 @@ export async function transcribeVideo(videoData, options = { language: 'ja', wit
       duration: mockTranscription.duration
     };
   }
-  
+
   return mockTranscription;
 }
 
@@ -69,12 +95,19 @@ export async function transcribeVideo(videoData, options = { language: 'ja', wit
  * @param {Object} transcription - 文字起こし結果
  * @returns {string} タイムスタンプ付きテキスト
  */
-export function formatTranscriptionWithTimestamps(transcription) {
+export function formatTranscriptionWithTimestamps(transcription: {
+    text?: string;
+    segments?: Array<{
+        start: number;
+        end: number;
+        text: string;
+    }>;
+}): string {
   if (!transcription.segments || transcription.segments.length === 0) {
     return transcription.text || '';
   }
-  
-  return transcription.segments.map(segment => {
+
+    return transcription.segments.map(segment => {
     const startTime = formatTimestamp(segment.start);
     const endTime = formatTimestamp(segment.end);
     return `[${startTime} --> ${endTime}] ${segment.text}`;
@@ -86,13 +119,13 @@ export function formatTranscriptionWithTimestamps(transcription) {
  * @param {number} seconds - 秒数
  * @returns {string} HH:MM:SS形式の時間
  */
-function formatTimestamp(seconds) {
+function formatTimestamp(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 1000);
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 }
 
 /**
@@ -102,14 +135,24 @@ function formatTimestamp(seconds) {
  * @param {number} endTime - 終了時間（秒）
  * @returns {string} 抽出されたテキスト
  */
-export function extractTextByTimeRange(transcription, startTime, endTime) {
+export function extractTextByTimeRange(
+    transcription: {
+        segments?: Array<{
+            start: number;
+            end: number;
+            text: string;
+        }>;
+    },
+    startTime: number,
+    endTime: number
+): string {
   if (!transcription.segments || transcription.segments.length === 0) {
     return '';
   }
-  
-  const relevantSegments = transcription.segments.filter(
+
+    const relevantSegments = transcription.segments.filter(
     segment => segment.end >= startTime && segment.start <= endTime
   );
-  
-  return relevantSegments.map(segment => segment.text).join(' ');
+
+    return relevantSegments.map(segment => segment.text).join(' ');
 }

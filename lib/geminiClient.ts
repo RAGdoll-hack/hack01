@@ -6,6 +6,23 @@
  */
 
 /**
+ * 定数定義
+ */
+const PROCESSING_DELAY = {
+  TEXT: 800,   // テキスト処理の遅延時間（ミリ秒）
+  IMAGE: 1200, // 画像処理の遅延時間（ミリ秒）
+  VIDEO: 1500  // 動画処理の遅延時間（ミリ秒）
+};
+
+const DEFAULT_MESSAGE = {
+  NO_ISSUES: "特に問題は見つかりませんでした",
+  SAFE_TO_POST: "このまま投稿しても問題ないでしょう",
+  HIGH_RISK: "このコンテンツは高リスクと判断されました。投稿前に内容を見直すことを強く推奨します",
+  MEDIUM_RISK: "このコンテンツには中程度のリスクがあります。指摘された問題点を修正することをお勧めします",
+  DEFAULT_SUGGESTION: "より丁寧な表現を心がけることで、コミュニケーションの質が向上します"
+};
+
+/**
  * リスクレベルの定義
  */
 export enum RiskLevel {
@@ -32,10 +49,10 @@ export interface RiskAssessment {
 export async function deepCheckText(text: string, context: string = ""): Promise<RiskAssessment> {
   // 実際の実装では、Gemini APIにテキストとコンテキストを送信します
   // ここではモックデータを返します
-  
+
   // 処理時間をシミュレート
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
+  await new Promise(resolve => setTimeout(resolve, PROCESSING_DELAY.TEXT));
+
   // テキスト内の特定のキーワードに基づいてリスクを評価
   const sensitiveWords = [
     { word: "バカ", level: RiskLevel.MEDIUM },
@@ -48,15 +65,15 @@ export async function deepCheckText(text: string, context: string = ""): Promise
     { word: "嫌い", level: RiskLevel.LOW },
     { word: "勘違い", level: RiskLevel.LOW }
   ];
-  
+
   const foundIssues: string[] = [];
   let highestRiskLevel = RiskLevel.LOW;
-  
+
   // テキスト内の問題を検出
   sensitiveWords.forEach(({ word, level }) => {
     if (text.includes(word)) {
       foundIssues.push(`「${word}」という表現が含まれています`);
-      
+
       // 最も高いリスクレベルを記録
       if (level === RiskLevel.HIGH || 
          (level === RiskLevel.MEDIUM && highestRiskLevel === RiskLevel.LOW)) {
@@ -64,7 +81,7 @@ export async function deepCheckText(text: string, context: string = ""): Promise
       }
     }
   });
-  
+
   // コンテキストも考慮した追加チェック
   if (context && context.includes("批判") && text.includes("思う")) {
     foundIssues.push("過去の批判的な投稿に続く意見表明は、炎上リスクがあります");
@@ -72,19 +89,19 @@ export async function deepCheckText(text: string, context: string = ""): Promise
       highestRiskLevel = RiskLevel.MEDIUM;
     }
   }
-  
+
   // 問題が見つからない場合
   if (foundIssues.length === 0) {
     return {
       riskLevel: RiskLevel.LOW,
-      issues: ["特に問題は見つかりませんでした"],
-      suggestions: ["このまま投稿しても問題ないでしょう"]
+      issues: [DEFAULT_MESSAGE.NO_ISSUES],
+      suggestions: [DEFAULT_MESSAGE.SAFE_TO_POST]
     };
   }
-  
+
   // 改善提案を生成
   const suggestions = generateSuggestions(foundIssues, highestRiskLevel);
-  
+
   return {
     riskLevel: highestRiskLevel,
     issues: foundIssues,
@@ -102,21 +119,21 @@ export async function deepCheckText(text: string, context: string = ""): Promise
 export async function deepCheckImage(imageBase64: string, caption: string = "", context: string = ""): Promise<RiskAssessment> {
   // 実際の実装では、Gemini APIに画像データとテキストを送信します
   // ここではモックデータを返します
-  
+
   // 処理時間をシミュレート
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  
+  await new Promise(resolve => setTimeout(resolve, PROCESSING_DELAY.IMAGE));
+
   // 画像のハッシュ値（モック）に基づいてリスクを評価
   // 実際の実装では、画像の内容をAIが分析します
   const mockImageHash = imageBase64.length % 10;
-  
+
   // キャプションのリスク評価
   const captionAssessment = caption ? await deepCheckText(caption, context) : null;
-  
+
   // 画像内容のモック評価
   let imageIssues: string[] = [];
   let imageRiskLevel = RiskLevel.LOW;
-  
+
   if (mockImageHash >= 8) {
     imageIssues.push("画像に不適切なコンテンツが含まれている可能性があります");
     imageRiskLevel = RiskLevel.HIGH;
@@ -127,32 +144,32 @@ export async function deepCheckImage(imageBase64: string, caption: string = "", 
     imageIssues.push("画像に個人情報が写り込んでいる可能性があります");
     imageRiskLevel = RiskLevel.MEDIUM;
   }
-  
+
   // キャプションと画像の評価を統合
   const allIssues = [
     ...(captionAssessment?.issues || []),
     ...imageIssues
   ];
-  
+
   // 最も高いリスクレベルを採用
   const finalRiskLevel = captionAssessment?.riskLevel === RiskLevel.HIGH || imageRiskLevel === RiskLevel.HIGH
     ? RiskLevel.HIGH
     : captionAssessment?.riskLevel === RiskLevel.MEDIUM || imageRiskLevel === RiskLevel.MEDIUM
       ? RiskLevel.MEDIUM
       : RiskLevel.LOW;
-  
+
   // 問題が見つからない場合
-  if (allIssues.length === 0 || (allIssues.length === 1 && allIssues[0] === "特に問題は見つかりませんでした")) {
+  if (allIssues.length === 0 || (allIssues.length === 1 && allIssues[0] === DEFAULT_MESSAGE.NO_ISSUES)) {
     return {
       riskLevel: RiskLevel.LOW,
-      issues: ["特に問題は見つかりませんでした"],
-      suggestions: ["このまま投稿しても問題ないでしょう"]
+      issues: [DEFAULT_MESSAGE.NO_ISSUES],
+      suggestions: [DEFAULT_MESSAGE.SAFE_TO_POST]
     };
   }
-  
+
   // 改善提案を生成
   const suggestions = generateSuggestions(allIssues, finalRiskLevel);
-  
+
   return {
     riskLevel: finalRiskLevel,
     issues: allIssues,
@@ -174,21 +191,21 @@ export async function deepCheckVideo(
 ): Promise<RiskAssessment & { timeRanges: Array<{ start: number, end: number, issue: string }> }> {
   // 実際の実装では、Gemini APIに文字起こしとコンテキストを送信します
   // ここではモックデータを返します
-  
+
   // 処理時間をシミュレート
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
+  await new Promise(resolve => setTimeout(resolve, PROCESSING_DELAY.VIDEO));
+
   // 文字起こし全体のリスク評価
   const textAssessment = await deepCheckText(transcription, context);
-  
+
   // 各セグメントのリスク評価
   const timeRanges: Array<{ start: number, end: number, issue: string }> = [];
-  
+
   if (segments && segments.length > 0) {
     for (const segment of segments) {
       // 各セグメントのテキストを評価
       const segmentAssessment = await deepCheckText(segment.text);
-      
+
       // 中リスク以上の問題があれば時間範囲を記録
       if (segmentAssessment.riskLevel !== RiskLevel.LOW && segmentAssessment.issues.length > 0 && 
           segmentAssessment.issues[0] !== "特に問題は見つかりませんでした") {
@@ -200,7 +217,7 @@ export async function deepCheckVideo(
       }
     }
   }
-  
+
   return {
     ...textAssessment,
     timeRanges
@@ -215,7 +232,7 @@ export async function deepCheckVideo(
  */
 function generateSuggestions(issues: string[], riskLevel: RiskLevel): string[] {
   const suggestions: string[] = [];
-  
+
   // 問題ごとの提案を生成
   issues.forEach(issue => {
     if (issue.includes("バカ") || issue.includes("アホ") || issue.includes("馬鹿")) {
@@ -236,18 +253,18 @@ function generateSuggestions(issues: string[], riskLevel: RiskLevel): string[] {
       suggestions.push("過去の投稿との関連性を考慮し、より慎重な表現を心がけてください");
     }
   });
-  
+
   // リスクレベルに応じた全体的な提案を追加
   if (riskLevel === RiskLevel.HIGH) {
-    suggestions.push("このコンテンツは高リスクと判断されました。投稿前に内容を見直すことを強く推奨します");
+    suggestions.push(DEFAULT_MESSAGE.HIGH_RISK);
   } else if (riskLevel === RiskLevel.MEDIUM) {
-    suggestions.push("このコンテンツには中程度のリスクがあります。指摘された問題点を修正することをお勧めします");
+    suggestions.push(DEFAULT_MESSAGE.MEDIUM_RISK);
   }
-  
+
   // 提案がない場合のデフォルト提案
   if (suggestions.length === 0) {
-    suggestions.push("より丁寧な表現を心がけることで、コミュニケーションの質が向上します");
+    suggestions.push(DEFAULT_MESSAGE.DEFAULT_SUGGESTION);
   }
-  
+
   return suggestions;
 }
