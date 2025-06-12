@@ -59,23 +59,43 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+
+        .blank-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+
+        .settings-screen {
+            display: none;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>My Chrome Extension</h1>
-        <p>Chrome拡張機能のサンプル</p>
+<!-- 空画面と設定ボタン -->
+<div class="blank-screen" id="blankScreen">
+    <button class="btn" id="settingsBtn">設定</button>
+</div>
+
+<!-- 設定画面 -->
+<div class="settings-screen" id="settingsScreen">
+    <div class="container">
+        <div class="header">
+            <h1>My Chrome Extension</h1>
+            <p>Chrome拡張機能のサンプル</p>
+        </div>
+
+        <div class="setting-item">
+            <label for="enabled">拡張機能を有効にする</label>
+            <input checked id="enabled" type="checkbox">
+        </div>
+
+        <button class="btn" id="saveBtn">設定を保存</button>
+        <button class="btn" id="backBtn" style="margin-top: 10px; background-color: #757575;">戻る</button>
+
+        <div class="status" id="status"></div>
     </div>
-
-    <div class="setting-item">
-        <label for="enabled">拡張機能を有効にする</label>
-        <input checked id="enabled" type="checkbox">
-    </div>
-
-    <button class="btn" id="saveBtn">設定を保存</button>
-
-    <div class="status" id="status"></div>
 </div>
 
 <!-- スクリプトはwebpackによって自動的に挿入されます -->

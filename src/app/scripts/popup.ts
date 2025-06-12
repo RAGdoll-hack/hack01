@@ -3,6 +3,7 @@
  *
  * Chrome拡張機能のポップアップUIを制御するスクリプトです。
  * ユーザーの設定を管理し、バックグラウンドスクリプトと通信します。
+ * 初期表示は空画面で、設定ボタンをクリックすると設定画面に切り替わります。
  */
 
 // スタイルシートのインポート
@@ -39,6 +40,11 @@ interface UpdateResponse {
 
 // DOMが読み込まれたときに実行
 document.addEventListener('DOMContentLoaded', () => {
+    // 画面要素の取得
+    const blankScreen = document.getElementById('blankScreen') as HTMLElement;
+    const settingsScreen = document.getElementById('settingsScreen') as HTMLElement;
+    const settingsButton = document.getElementById('settingsBtn') as HTMLButtonElement;
+    const backButton = document.getElementById('backBtn') as HTMLButtonElement;
     const enabledCheckbox = document.getElementById('enabled') as HTMLInputElement;
     const saveButton = document.getElementById('saveBtn') as HTMLButtonElement;
     const statusElement = document.getElementById('status') as HTMLElement;
@@ -46,8 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初期設定を読み込む
     loadSettings();
 
+    // 設定ボタンのクリックイベント - 設定画面を表示
+    settingsButton.addEventListener('click', showSettingsScreen);
+
+    // 戻るボタンのクリックイベント - 空画面に戻る
+    backButton.addEventListener('click', showBlankScreen);
+
     // 保存ボタンのクリックイベント
     saveButton.addEventListener('click', saveSettings);
+
+    /**
+     * 空画面を表示する関数
+     */
+    function showBlankScreen(): void {
+        blankScreen.style.display = 'flex';
+        settingsScreen.style.display = 'none';
+    }
+
+    /**
+     * 設定画面を表示する関数
+     */
+    function showSettingsScreen(): void {
+        blankScreen.style.display = 'none';
+        settingsScreen.style.display = 'block';
+    }
 
     /**
      * 設定を読み込む関数
