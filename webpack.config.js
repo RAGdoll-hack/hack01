@@ -80,6 +80,7 @@ module.exports = {
         popup: path.join(__dirname, 'src', 'app', 'scripts', 'popup.ts'),
         background: path.join(__dirname, 'src', 'app', 'scripts', 'background.ts'),
         sidebar: path.join(__dirname, 'src', 'app', 'scripts', 'sidebar.ts'),
+        content: path.join(__dirname, 'src', 'app', 'scripts', 'content.ts'),
     },
     // ビルド前の検証
     infrastructureLogging: {

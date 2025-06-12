@@ -16,6 +16,17 @@ import '../styles/sidebar.css';
 interface Settings {
     enabled: boolean;
     activeView?: 'settings' | 'empty'; // 現在アクティブなビュー
+    // 禁止事項の設定
+    disallowDiscrimination?: boolean; // 差別・偏見につながる発言
+    disallowDefamation?: boolean; // 誹謗中傷・人格攻撃
+    disallowMisinformation?: boolean; // デマや誤情報の拡散
+    disallowInappropriate?: boolean; // 不謹慎な投稿
+    disallowExtremism?: boolean; // 過激な思想の表明（政治・宗教など）
+    disallowCopyright?: boolean; // 著作権・肖像権の侵害
+    disallowCondescending?: boolean; // 上から目線・マウンティング
+    disallowUnethical?: boolean; // 倫理観や常識を疑われる言動
+    disallowExcessiveComplaints?: boolean; // 企業や店舗への過度なクレーム
+    disallowStealthMarketing?: boolean; // ステルスマーケティング（ステマ）
 }
 
 // メッセージの型定義
@@ -47,9 +58,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleViewButton = document.getElementById('toggleViewBtn') as HTMLButtonElement;
     const settingsView = document.getElementById('settingsView') as HTMLElement;
     const emptyView = document.getElementById('emptyView') as HTMLElement;
-    // const emptyTextContainer = emptyView.querySelector('.empty-view') as HTMLElement | null; // 削除済みであることを確認
     const addWarningButton = document.getElementById('addWarningBtn') as HTMLButtonElement;
     const warningsContainer = document.getElementById('warningsContainer') as HTMLElement | null;
+
+    // 禁止事項設定のチェックボックス要素
+    const disallowDiscriminationCheckbox = document.getElementById('disallowDiscrimination') as HTMLInputElement;
+    const disallowDefamationCheckbox = document.getElementById('disallowDefamation') as HTMLInputElement;
+    const disallowMisinformationCheckbox = document.getElementById('disallowMisinformation') as HTMLInputElement;
+    const disallowInappropriateCheckbox = document.getElementById('disallowInappropriate') as HTMLInputElement;
+    const disallowExtremismCheckbox = document.getElementById('disallowExtremism') as HTMLInputElement;
+    const disallowCopyrightCheckbox = document.getElementById('disallowCopyright') as HTMLInputElement;
+    const disallowCondescendingCheckbox = document.getElementById('disallowCondescending') as HTMLInputElement;
+    const disallowUnethicalCheckbox = document.getElementById('disallowUnethical') as HTMLInputElement;
+    const disallowExcessiveComplaintsCheckbox = document.getElementById('disallowExcessiveComplaints') as HTMLInputElement;
+    const disallowStealthMarketingCheckbox = document.getElementById('disallowStealthMarketing') as HTMLInputElement;
 
     // 初期設定を読み込む
     loadSettings();
@@ -133,9 +155,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const initialView: 'settings' | 'empty' = 'empty';
 
             if (response && response.settings) {
-                // enabled の状態などは保存された設定を反映する
-                if (enabledCheckbox) enabledCheckbox.checked = response.settings.enabled;
-                // activeView に関しては、保存された値を無視して常に 'empty' で初期化する
+                // 基本設定
+                enabledCheckbox.checked = response.settings.enabled;
+
+                // 禁止事項設定
+                disallowDiscriminationCheckbox.checked = response.settings.disallowDiscrimination || false;
+                disallowDefamationCheckbox.checked = response.settings.disallowDefamation || false;
+                disallowMisinformationCheckbox.checked = response.settings.disallowMisinformation || false;
+                disallowInappropriateCheckbox.checked = response.settings.disallowInappropriate || false;
+                disallowExtremismCheckbox.checked = response.settings.disallowExtremism || false;
+                disallowCopyrightCheckbox.checked = response.settings.disallowCopyright || false;
+                disallowCondescendingCheckbox.checked = response.settings.disallowCondescending || false;
+                disallowUnethicalCheckbox.checked = response.settings.disallowUnethical || false;
+                disallowExcessiveComplaintsCheckbox.checked = response.settings.disallowExcessiveComplaints || false;
+                disallowStealthMarketingCheckbox.checked = response.settings.disallowStealthMarketing || false;
             }
             setActiveView(initialView);
         });
@@ -147,8 +180,30 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveSettings(): void {
         if (!enabledCheckbox) return;
         const activeView = settingsView.classList.contains('active') ? 'settings' : 'empty';
-        const settings: Settings = { enabled: enabledCheckbox.checked, activeView: activeView };
-        const message: UpdateSettingsMessage = { type: 'UPDATE_SETTINGS', settings: settings };
+
+        const settings: Settings = {
+            // 基本設定
+            enabled: enabledCheckbox.checked,
+            activeView: activeView,
+
+            // 禁止事項設定
+            disallowDiscrimination: disallowDiscriminationCheckbox.checked,
+            disallowDefamation: disallowDefamationCheckbox.checked,
+            disallowMisinformation: disallowMisinformationCheckbox.checked,
+            disallowInappropriate: disallowInappropriateCheckbox.checked,
+            disallowExtremism: disallowExtremismCheckbox.checked,
+            disallowCopyright: disallowCopyrightCheckbox.checked,
+            disallowCondescending: disallowCondescendingCheckbox.checked,
+            disallowUnethical: disallowUnethicalCheckbox.checked,
+            disallowExcessiveComplaints: disallowExcessiveComplaintsCheckbox.checked,
+            disallowStealthMarketing: disallowStealthMarketingCheckbox.checked
+        };
+
+        const message: UpdateSettingsMessage = {
+            type: 'UPDATE_SETTINGS',
+            settings: settings
+        };
+
         chrome.runtime.sendMessage(message, (response: UpdateResponse) => {
             showStatus(response && response.success ? '設定が保存されました' : '設定の保存に失敗しました', response && response.success ? 'success' : 'error');
         });
@@ -171,8 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function setActiveView(viewName: 'settings' | 'empty'): void {
         if (!warningsContainer || !settingsView || !emptyView) return;
 
-        // const allWarningElements = warningsContainer.querySelectorAll('.post-warning') as NodeListOf<HTMLElement>; // emptyTextContainer 関連で不要になった場合は削除検討
-
         if (viewName === 'settings') {
             settingsView.classList.add('active');
             emptyView.classList.remove('active');
@@ -184,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
             warningsContainer.style.display = '';
             if (toggleViewButton) toggleViewButton.textContent = '設定画面へ'; // ボタンテキスト変更
         }
-        // emptyTextContainer とそれに関連する anyWarningVisible のロジックは削除済みであること
     }
 
     /**
@@ -202,4 +254,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 });
-
