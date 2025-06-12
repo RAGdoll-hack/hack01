@@ -1,46 +1,54 @@
-<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Chrome Extension</title><style>body {
-      width: 300px;
-      padding: 10px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .btn {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .btn:hover {
-      background-color: #3367d6;
-    }
-    .status {
-      margin-top: 10px;
-      padding: 8px;
-      border-radius: 4px;
-      text-align: center;
-      display: none;
-    }
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }</style><script defer="defer" src="popup.js"></script></head><body><div class="container"><div class="header"><h1>My Chrome Extension</h1><p>Chrome拡張機能のサンプル</p></div><div class="setting-item"><label for="enabled">拡張機能を有効にする</label> <input type="checkbox" id="enabled" checked="checked"></div><button id="saveBtn" class="btn">設定を保存</button><div id="status" class="status"></div></div></body></html>
+<!doctype html><html lang="ja"><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1" name="viewport"><title>My Chrome Extension</title><style>body {
+            width: 300px;
+            padding: 10px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            background-color: #3367d6;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }</style><script defer="defer" src="popup.js"></script></head><body><div class="container"><div class="header"><h1>My Chrome Extension</h1><p>Chrome拡張機能のサンプル</p></div><div class="setting-item"><label for="enabled">拡張機能を有効にする</label> <input checked="checked" id="enabled" type="checkbox"></div><button class="btn" id="saveBtn">設定を保存</button><div class="status" id="status"></div></div></body></html>

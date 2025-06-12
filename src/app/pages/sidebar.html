@@ -5,36 +5,197 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>サイドバー</title>
     <!-- スタイルはwebpackによって自動的に挿入されます -->
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* ビューポート全体の高さ */
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* コンテナが残りのスペースを埋めるように */
+            overflow: hidden; /* warnings-container のスクロールのため */
+        }
+        .header {
+            background: #f0f0f0; /* 背景色をつけて下のコンテンツと区別 */
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            position: sticky;
+            top: 0;
+            z-index: 1000; /* 他の要素より手前に */
+        }
+        .header-text h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5em;
+        }
+        .header-text p {
+            margin: 0;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .toggle-btn { /* #toggleViewBtn にも適用される共通スタイル */
+            margin-top: 5px;
+            display: inline-block;
+            width: auto;
+            padding: 8px 12px; /* .btn から移動 */
+            border: 1px solid #ccc; /* .btn から移動 */
+            background-color: #f8f8f8; /* .btn から移動 */
+            cursor: pointer; /* .btn から移動 */
+            border-radius: 3px; /* .btn から移動 */
+        }
+        .toggle-btn:hover { /* #toggleViewBtn のホバー効果 */
+            background-color: #e8e8e8; /* .btn:hover から移動 */
+        }
+
+        #saveBtn {
+            padding: 8px 12px; /* .btn からコピー */
+            border: 1px solid #ccc; /* .btn からコピー */
+            background-color: #f8f8f8; /* .btn からコピー */
+            cursor: pointer; /* .btn からコピー */
+            border-radius: 3px; /* .btn からコピー */
+            /* 必要であれば #saveBtn 固有のスタイルを追加 */
+        }
+        #saveBtn:hover {
+            background-color: #e8e8e8; /* .btn:hover からコピー */
+        }
+
+        #addWarningBtn {
+            display: block;
+            width: calc(100% - 20px);
+            margin: 10px auto;
+            padding: 8px 12px; /* .btn からコピー */
+            border: 1px solid #ccc; /* .btn からコピー */
+            background-color: #f8f8f8; /* .btn からコピー */
+            cursor: pointer; /* .btn からコピー */
+            border-radius: 3px; /* .btn からコピー */
+            /* 必要であれば #addWarningBtn 固有のスタイルを追加 */
+        }
+        #addWarningBtn:hover {
+            background-color: #e8e8e8; /* .btn:hover からコピー */
+        }
+
+        .warnings-container {
+            flex-grow: 1; /* 利用可能なスペースを埋める */
+            overflow-y: auto; /* 縦方向にスクロール可能にする */
+            padding: 10px;
+        }
+
+        .post-warning {
+            border: 2px solid red;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 0, 0, 0.05),
+                rgba(255, 0, 0, 0.05) 10px,
+                rgba(255, 255, 255, 0) 10px,
+                rgba(255, 255, 255, 0) 20px
+            );
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.3s ease-in-out;
+        }
+        .post-warning.show {
+            max-height: 500px; /* 十分な高さを指定 */
+            opacity: 1;
+        }
+        .post-warning p {
+            margin: 0 0 8px 0;
+            font-weight: normal;
+        }
+        .post-warning p:last-child {
+            margin-bottom: 0;
+        }
+        .warning-title-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .warning-title {
+            font-size: 1.5em;
+            color: red;
+            font-weight: bold;
+        }
+        .warning-timestamp {
+            font-size: 0.8em;
+            color: grey;
+            margin-left: 10px;
+        }
+        .warning-emphasis {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .center-text {
+            text-align: center;
+        }
+        .warning-danger-value {
+            color: red;
+            font-weight: bold;
+        }
+
+        /* 設定画面と空の画面のスタイル */
+        .view {
+            padding: 10px;
+        }
+        .content {
+            display: none;
+        }
+        .content.active {
+            display: block;
+        }
+        .setting-item {
+            margin-bottom: 10px;
+        }
+        .status {
+            margin-top:10px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <div class="header-text">
-            <h1>サイドバー</h1>
-            <p>Chrome拡張機能のサイドバー</p>
+            <h1>コンプライアンス</h1h1>
+            </br>
+            <h1>チェッカー</h1>
         </div>
-        <button class="toggle-btn" id="toggleViewBtn">表示切替</button>
+        <button class="toggle-btn" id="toggleViewBtn">表示切替</button> <!-- .btn クラスを削除 -->
+    </div>
+
+    <div class="warnings-container" id="warningsContainer">
+        <!-- 初期表示用の警告 -->
     </div>
 
     <!-- 設定画面 -->
-    <div class="view content active" id="settingsView">
+    <div class="view content" id="settingsView">
         <div class="setting-item">
             <label for="enabled">拡張機能を有効にする</label>
             <input checked id="enabled" type="checkbox">
         </div>
-
-        <button class="btn" id="saveBtn">設定を保存</button>
-
+        <button id="saveBtn">設定を保存</button> <!-- .btn クラスを削除 -->
         <div class="status" id="status"></div>
     </div>
 
     <!-- 空の画面 -->
     <div class="view content" id="emptyView">
-        <div class="empty-view">
-            <p>表示するコンテンツはありません</p>
-        </div>
+        
     </div>
-</div>
+</div> <!-- .container の閉じタグ -->
+<button id="addWarningBtn">新しい警告を追加</button> <!-- .btn クラスを削除 -->
 
 <!-- スクリプトはwebpackによって自動的に挿入されます -->
 </body>
