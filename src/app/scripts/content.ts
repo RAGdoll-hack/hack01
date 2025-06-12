@@ -178,7 +178,15 @@ chrome.runtime.onMessage.addListener((msg: { type: string }, sender, sendRespons
 
 // 以下、チェックボタン追加のための実装
 
-console.log('X.com用コンテンツスクリプトが読み込まれました');
+// 現在のホスト名を取得
+const currentHost = window.location.hostname;
+
+// ホスト名に基づいてログメッセージを変更
+if (currentHost === 'studio.youtube.com') {
+    console.log('YouTube Studio用コンテンツスクリプトが読み込まれました');
+} else {
+    console.log('X.com用コンテンツスクリプトが読み込まれました');
+}
 
 // 即時実行関数でスクリプトを実行
 (function () {
@@ -198,7 +206,11 @@ console.log('X.com用コンテンツスクリプトが読み込まれました')
     // 5秒後に一度だけ強制的に実行を試みる
     setTimeout(() => {
         console.log('タイムアウト: 5秒経過したため強制的に実行を試みます');
-        tryAddCheckButton();
+        if (currentHost === 'studio.youtube.com') {
+            tryAddYouTubeStudioCheckButton();
+        } else {
+            tryAddCheckButton();
+        }
     }, 5000);
 })();
 
@@ -209,12 +221,20 @@ function initializeObserver(): void {
     console.log('MutationObserverを初期化します');
 
     // 初回実行
-    tryAddCheckButton();
+    if (currentHost === 'studio.youtube.com') {
+        tryAddYouTubeStudioCheckButton();
+    } else {
+        tryAddCheckButton();
+    }
 
     // MutationObserverを使用してDOMの変更を監視
     const observer = new MutationObserver((mutations) => {
         console.log(`DOM変更を検出: ${mutations.length}件の変更`);
-        tryAddCheckButton();
+        if (currentHost === 'studio.youtube.com') {
+            tryAddYouTubeStudioCheckButton();
+        } else {
+            tryAddCheckButton();
+        }
     });
 
     // ページ全体の変更を監視
@@ -406,6 +426,131 @@ function monitorSidebarPostButton(): void {
 }
 
 /**
+ * YouTube Studioのアップロードダイアログにチェックボタンを追加する処理
+ */
+function tryAddYouTubeStudioCheckButton(): void {
+    try {
+        console.log('YouTube Studioチェックボタン追加処理を開始します');
+
+        // right-button-areaを探す
+        console.log('right-button-area要素を検索中...');
+        const rightButtonArea = document.querySelector('div.right-button-area.style-scope.ytcp-uploads-dialog');
+        if (!rightButtonArea) {
+            console.log('right-button-area要素が見つかりませんでした');
+            // 現在のDOMの状態をログに出力
+            logCurrentDOMState();
+            return;
+        }
+        console.log('right-button-area要素が見つかりました:', rightButtonArea);
+
+        // すでにチェックボタンが追加されているか確認
+        console.log('既存のYouTube Studioチェックボタンを確認中...');
+        const existingCheckButton = document.querySelector('[data-testid="youtubeStudioCheckButton"]');
+        if (existingCheckButton) {
+            console.log('YouTube Studioチェックボタンは既に追加されています');
+            return;
+        }
+        console.log('既存のYouTube Studioチェックボタンは見つかりませんでした。新しく追加します');
+
+        // 戻るボタンを探す
+        console.log('戻るボタンを検索中...');
+        const backButton = rightButtonArea.querySelector('#back-button') as HTMLElement;
+        if (!backButton) {
+            console.log('戻るボタンが見つかりませんでした');
+            // 現在のDOMの状態をログに出力
+            logCurrentDOMState();
+            return;
+        }
+        console.log('戻るボタンが見つかりました:', backButton);
+
+        // チェックボタンを作成
+        console.log('YouTube Studioチェックボタンを作成中...');
+        const checkButton = createYouTubeStudioCheckButton();
+        console.log('YouTube Studioチェックボタンが作成されました:', checkButton);
+
+        // 戻るボタンの前に挿入
+        console.log('YouTube Studioチェックボタンを挿入中...');
+        rightButtonArea.insertBefore(checkButton, backButton);
+        console.log('YouTube Studioチェックボタンが正常に追加されました');
+
+    } catch (error) {
+        console.error('YouTube Studioチェックボタン追加中にエラーが発生しました:', error);
+    }
+}
+
+/**
+ * YouTube Studio用のチェックボタンを作成する
+ * @returns {HTMLElement} - 作成されたチェックボタン
+ */
+function createYouTubeStudioCheckButton(): HTMLElement {
+    try {
+        console.log('YouTube Studio用チェックボタンを作成中...');
+
+        // ytcp-buttonを使用してボタンを作成
+        const checkButton = document.createElement('ytcp-button');
+        checkButton.setAttribute('id', 'check-button');
+        checkButton.setAttribute('label', 'チェック');
+        checkButton.setAttribute('type', 'filled');
+        checkButton.setAttribute('class', 'style-scope ytcp-uploads-dialog');
+        checkButton.setAttribute('tabindex', '-1');
+        checkButton.setAttribute('button-style', 'default');
+        checkButton.setAttribute('icon-alignment', 'start');
+        checkButton.setAttribute('modern', '');
+        checkButton.setAttribute('aria-disabled', 'false');
+        checkButton.setAttribute('role', 'button');
+        checkButton.setAttribute('data-testid', 'youtubeStudioCheckButton');
+
+        // ボタンの内部構造を作成
+        checkButton.innerHTML = `
+            <ytcp-button-shape>
+                <button class="ytcp-button-shape-impl ytcp-button-shape-impl--filled ytcp-button-shape-impl--mono ytcp-button-shape-impl--size-m ytcp-button-shape-impl--enable-backdrop-filter-experiment" 
+                        title="" 
+                        aria-label="チェック" 
+                        aria-disabled="false"
+                        style="background-color: #1d9bf0;">
+                    <div class="ytcp-button-shape-impl__button-text-content">チェック</div>
+                    <yt-touch-feedback-shape style="border-radius: inherit;">
+                        <div aria-hidden="true" class="yt-spec-touch-feedback-shape yt-spec-touch-feedback-shape--touch-response-inverse">
+                            <div class="yt-spec-touch-feedback-shape__stroke"></div>
+                            <div class="yt-spec-touch-feedback-shape__fill"></div>
+                        </div>
+                    </yt-touch-feedback-shape>
+                </button>
+            </ytcp-button-shape>
+        `;
+
+        // クリックイベントを設定
+        console.log('クリックイベントを設定中...');
+        checkButton.addEventListener('click', () => {
+            console.log('YouTube Studioチェックボタンがクリックされました');
+            // ここに実際の処理を追加
+        });
+        console.log('クリックイベントが設定されました');
+
+        return checkButton;
+    } catch (error) {
+        console.error('YouTube Studio用チェックボタン作成中にエラーが発生しました:', error);
+
+        // エラーが発生した場合でもボタンを返すために、シンプルなボタンを作成
+        const fallbackButton = document.createElement('button');
+        fallbackButton.setAttribute('data-testid', 'youtubeStudioCheckButton');
+        fallbackButton.textContent = 'チェック';
+        fallbackButton.setAttribute('aria-disabled', 'false');
+        fallbackButton.setAttribute('tabindex', '0');
+        fallbackButton.style.cssText = 'background-color: #1d9bf0; color: white; border: none; border-radius: 2px; padding: 0 16px; height: 36px; font-weight: bold; margin-right: 12px; cursor: pointer; opacity: 1;';
+
+        // クリックイベントを追加
+        fallbackButton.addEventListener('click', () => {
+            console.log('フォールバックYouTube Studioチェックボタンがクリックされました');
+            // ここに実際の処理を追加
+        });
+
+        console.log('フォールバックボタンを作成しました');
+        return fallbackButton;
+    }
+}
+
+/**
  * 現在のDOMの状態をログに出力する
  */
 function logCurrentDOMState(): void {
@@ -423,6 +568,15 @@ function logCurrentDOMState(): void {
 
     // bodyの子要素数
     console.log(`body直下の子要素数: ${document.body.children.length}`);
+
+    // YouTube Studio特有の要素を検索
+    if (currentHost === 'studio.youtube.com') {
+        const rightButtonArea = document.querySelector('div.right-button-area.style-scope.ytcp-uploads-dialog');
+        if (rightButtonArea) {
+            console.log('right-button-area内の要素:');
+            console.log(rightButtonArea.innerHTML);
+        }
+    }
 }
 
 /**

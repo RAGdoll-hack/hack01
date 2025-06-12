@@ -23,7 +23,8 @@
     {
       "matches": [
         "*://x.com/*",
-        "*://twitter.com/*"
+        "*://twitter.com/*",
+        "*://studio.youtube.com/*"
       ],
       "js": [
         "content.js"
