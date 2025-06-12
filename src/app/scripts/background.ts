@@ -12,6 +12,17 @@
 interface Settings {
     enabled: boolean;
     activeView?: 'settings' | 'empty'; // 現在アクティブなビュー
+    // 禁止事項の設定
+    disallowDiscrimination: boolean; // 差別・偏見につながる発言
+    disallowDefamation: boolean; // 誹謗中傷・人格攻撃
+    disallowMisinformation: boolean; // デマや誤情報の拡散
+    disallowInappropriate: boolean; // 不謹慎な投稿
+    disallowExtremism: boolean; // 過激な思想の表明（政治・宗教など）
+    disallowCopyright: boolean; // 著作権・肖像権の侵害
+    disallowCondescending: boolean; // 上から目線・マウンティング
+    disallowUnethical: boolean; // 倫理観や常識を疑われる言動
+    disallowExcessiveComplaints: boolean; // 企業や店舗への過度なクレーム
+    disallowStealthMarketing: boolean; // ステルスマーケティング（ステマ）
 }
 
 // メッセージの型定義
@@ -50,7 +61,18 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({
         settings: {
             enabled: true,
-            activeView: 'settings' // デフォルトでは設定画面を表示
+            activeView: 'settings', // デフォルトでは設定画面を表示
+            // 禁止事項の設定（デフォルトではすべてオン）
+            disallowDiscrimination: true,
+            disallowDefamation: true,
+            disallowMisinformation: true,
+            disallowInappropriate: true,
+            disallowExtremism: true,
+            disallowCopyright: true,
+            disallowCondescending: true,
+            disallowUnethical: true,
+            disallowExcessiveComplaints: true,
+            disallowStealthMarketing: true
         }
     }, () => {
         console.log('初期設定が保存されました');
@@ -66,7 +88,18 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
         chrome.storage.local.get('settings', (data: { settings?: Settings }) => {
             const defaultSettings: Settings = {
                 enabled: true,
-                activeView: 'settings'
+                activeView: 'settings',
+                // 禁止事項の設定（デフォルトではすべてオン）
+                disallowDiscrimination: true,
+                disallowDefamation: true,
+                disallowMisinformation: true,
+                disallowInappropriate: true,
+                disallowExtremism: true,
+                disallowCopyright: true,
+                disallowCondescending: true,
+                disallowUnethical: true,
+                disallowExcessiveComplaints: true,
+                disallowStealthMarketing: true
             };
             sendResponse({settings: data.settings || defaultSettings});
         });

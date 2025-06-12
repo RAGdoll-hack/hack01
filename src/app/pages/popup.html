@@ -91,7 +91,64 @@
             <input checked id="enabled" type="checkbox">
         </div>
 
-        <button class="btn" id="saveBtn">設定を保存</button>
+        <div style="margin-top: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 4px;">
+            <div style="margin-bottom: 10px; font-weight: bold; display: flex; align-items: center;">
+                <span style="display: inline-block; border: 1px solid #f44336; padding: 2px 5px; margin-right: 8px; font-size: 12px; color: #f44336; border-radius: 2px;">OOFF</span>
+                <span>禁止事項設定</span>
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowDiscrimination">差別・偏見につながる発言</label>
+                <input id="disallowDiscrimination" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowDefamation">誹謗中傷・人格攻撃</label>
+                <input id="disallowDefamation" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowMisinformation">デマや誤情報の拡散</label>
+                <input id="disallowMisinformation" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowInappropriate">不謹慎な投稿</label>
+                <input id="disallowInappropriate" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowExtremism">過激な思想の表明（政治・宗教など）</label>
+                <input id="disallowExtremism" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowCopyright">著作権・肖像権の侵害</label>
+                <input id="disallowCopyright" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowCondescending">上から目線・マウンティング</label>
+                <input id="disallowCondescending" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowUnethical">倫理観や常識を疑われる言動</label>
+                <input id="disallowUnethical" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowExcessiveComplaints">企業や店舗への過度なクレーム</label>
+                <input id="disallowExcessiveComplaints" type="checkbox">
+            </div>
+
+            <div class="setting-item">
+                <label for="disallowStealthMarketing">ステルスマーケティング（ステマ）</label>
+                <input id="disallowStealthMarketing" type="checkbox">
+            </div>
+        </div>
+
+        <button class="btn" id="saveBtn" style="margin-top: 15px;">設定を保存</button>
         <button class="btn" id="backBtn" style="margin-top: 10px; background-color: #757575;">戻る</button>
 
         <div class="status" id="status"></div>
