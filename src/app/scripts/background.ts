@@ -64,8 +64,6 @@ chrome.sidePanel
 
 // 拡張機能がインストールされたときのイベントリスナー
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('拡張機能がインストールされました');
-
     // ストレージの初期化
     chrome.storage.local.set({
         settings: {
@@ -90,8 +88,6 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // メッセージリスナーの設定
 chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
-    console.log('メッセージを受信しました:', message);
-
     if (message.type === 'GET_SETTINGS') {
         // 設定を取得してレスポンスを返す
         chrome.storage.local.get('settings', (data: { settings?: Settings }) => {
@@ -158,14 +154,10 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
     }
 
     if (message.type === "ADD_WARNING") {
+        const tweetData = message.data;
         chrome.sidePanel.open({ windowId: sender?.tab?.windowId })
             .then(() => {
-                // 少し待ってから sidebar にメッセージを送信
-                setTimeout(() => {
-                    chrome.runtime.sendMessage({ type: 'ADD_WARNING' }, (res) => {
-                        sendResponse(res);
-                    });
-                }, 200); // 200ms 程度の遅延で十分なことが多い
+                sendResponse({ success: true });
             })
             .catch((err) => {
                 console.error("サイドパネルのオープンに失敗:", err);

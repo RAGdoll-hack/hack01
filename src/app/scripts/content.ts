@@ -215,8 +215,6 @@ function initializeObserver(): void {
         childList: true,
         subtree: true
     });
-
-    console.log('MutationObserverの監視を開始しました');
 }
 
 /**
@@ -264,16 +262,12 @@ function addCheckButtonToToolbar(): void {
     const postButton = document.querySelector('[data-testid="tweetButtonInline"]') as HTMLElement;
     if (!postButton) {
         console.log('インラインポストボタンが見つかりませんでした');
-        // ツールバー内の要素をログに出力
-        console.log('ツールバー内の要素:', toolBar.innerHTML);
         // 現在のDOMの状態をログに出力
         logCurrentDOMState();
         return;
     }
-    console.log('インラインポストボタンが見つかりました:', postButton);
 
     // ポストボタンの親要素を取得
-    console.log('インラインポストボタンの親要素を取得中...');
     const buttonContainer = postButton.parentElement;
     if (!buttonContainer) {
         console.log('インラインポストボタンの親要素が見つかりませんでした');
@@ -281,17 +275,12 @@ function addCheckButtonToToolbar(): void {
         logCurrentDOMState();
         return;
     }
-    console.log('インラインポストボタンの親要素が見つかりました:', buttonContainer);
 
     // チェックボタンを作成
-    console.log('インラインチェックボタンを作成中...');
     const checkButton = createCheckButton(postButton);
-    console.log('インラインチェックボタンが作成されました:', checkButton);
 
     // ポストボタンの前に挿入
-    console.log('インラインチェックボタンを挿入中...');
     buttonContainer.insertBefore(checkButton, postButton);
-    console.log('インラインチェックボタンが正常に追加されました');
 }
 
 /**
@@ -299,7 +288,6 @@ function addCheckButtonToToolbar(): void {
  */
 function addCheckButtonToRegularToolbar(): void {
     // ツールバーを探す
-    console.log('通常ツールバー要素を検索中...');
     const toolBar = document.querySelector('[data-testid="toolBar"]');
     if (!toolBar) {
         console.log('通常ツールバー要素が見つかりませんでした');
@@ -309,29 +297,23 @@ function addCheckButtonToRegularToolbar(): void {
     }
 
     // すでにチェックボタンが追加されているか確認
-    console.log('既存の通常チェックボタンを確認中...');
     const existingCheckButton = document.querySelector('[data-testid="checkButton"]');
     if (existingCheckButton) {
         console.log('通常チェックボタンは既に追加されています');
         return;
     }
-    console.log('既存の通常チェックボタンは見つかりませんでした。新しく追加します');
 
     // ポストボタンを探す
-    console.log('通常ポストボタンを検索中...');
     const postButton = document.querySelector('[data-testid="tweetButton"]') as HTMLElement;
     if (!postButton) {
-        console.log('通常ポストボタンが見つかりませんでした');
         // ツールバー内の要素をログに出力
-        console.log('ツールバー内の要素:', toolBar.innerHTML);
+        // console.log('ツールバー内の要素:', toolBar.innerHTML);
         // 現在のDOMの状態をログに出力
         logCurrentDOMState();
         return;
     }
-    console.log('通常ポストボタンが見つかりました:', postButton);
 
     // ポストボタンの親要素を取得
-    console.log('通常ポストボタンの親要素を取得中...');
     const buttonContainer = postButton.parentElement;
     if (!buttonContainer) {
         console.log('通常ポストボタンの親要素が見つかりませんでした');
@@ -339,26 +321,20 @@ function addCheckButtonToRegularToolbar(): void {
         logCurrentDOMState();
         return;
     }
-    console.log('通常ポストボタンの親要素が見つかりました:', buttonContainer);
 
     // チェックボタンを作成
-    console.log('通常チェックボタンを作成中...');
     const checkButton = createCheckButton(postButton);
     // 通常ボタン用にdata-testid属性を変更
     checkButton.setAttribute('data-testid', 'checkButton');
-    console.log('通常チェックボタンが作成されました:', checkButton);
 
     // ポストボタンの前に挿入
-    console.log('通常チェックボタンを挿入中...');
     buttonContainer.insertBefore(checkButton, postButton);
-    console.log('通常チェックボタンが正常に追加されました');
 }
 
 /**
  * サイドバーの新規ポストボタンのイベントを監視
  */
 function monitorSidebarPostButton(): void {
-    console.log('サイドバーの新規ポストボタンを検索中...');
     const sidebarPostButton = document.querySelector('[data-testid="SideNav_NewTweet_Button"]') as HTMLElement;
 
     if (!sidebarPostButton) {
@@ -367,8 +343,6 @@ function monitorSidebarPostButton(): void {
         logCurrentDOMState();
         return;
     }
-
-    console.log('サイドバーの新規ポストボタンが見つかりました:', sidebarPostButton);
 
     // すでにイベントリスナーが設定されているか確認するためのフラグ
     if (sidebarPostButton.hasAttribute('data-check-listener')) {
@@ -395,11 +369,8 @@ function monitorSidebarPostButton(): void {
  * 現在のDOMの状態をログに出力する
  */
 function logCurrentDOMState(): void {
-    console.log('現在のDOMの状態:');
-
     // data-testid属性を持つ要素を検索
     const testIdElements = document.querySelectorAll('[data-testid]');
-    console.log(`data-testid属性を持つ要素数: ${testIdElements.length}`);
 
     // 最初の10個の要素をログに出力
     const elementsToLog = Array.from(testIdElements).slice(0, 10);
@@ -418,20 +389,13 @@ function logCurrentDOMState(): void {
  */
 function createCheckButton(postButton: HTMLElement): HTMLElement {
     try {
-        console.log('ポストボタンのクローンを作成中...');
-        // ポストボタンの構造をログに出力
-        console.log('ポストボタンの構造:', postButton.outerHTML);
-
         // ポストボタンをクローン
         const checkButton = postButton.cloneNode(true) as HTMLElement;
-        console.log('ポストボタンのクローンが作成されました');
 
         // data-testid属性を変更
         checkButton.setAttribute('data-testid', 'checkButtonInline');
-        console.log('data-testid属性を設定しました: "checkButtonInline"');
 
         // ボタンを有効化する
-        console.log('ボタンを有効化します...');
         checkButton.removeAttribute('disabled');
         checkButton.removeAttribute('aria-disabled');
         checkButton.setAttribute('aria-disabled', 'false');
@@ -448,12 +412,7 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
         checkButton.style.backgroundColor = '#1d9bf0'; // Twitterブルー
         checkButton.style.color = 'white';
 
-        // ボタンのクラスリストをログに出力
-        console.log('ボタンのクラスリスト:', checkButton.className);
-        console.log('ボタンを有効化しました');
-
         // テキスト内容を「チェック」に変更
-        console.log('テキスト内容を変更中...');
         const textSpan = checkButton.querySelector('.css-1jxf684.r-bcqeeo.r-1ttztb7.r-qvutc0.r-1tl8opc') as HTMLElement;
         if (textSpan) {
             console.log('テキスト要素が見つかりました:', textSpan);
@@ -464,7 +423,6 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
 
             // 代替方法: すべてのspanを検索
             const allSpans = checkButton.querySelectorAll('span');
-            console.log(`ボタン内のspan要素数: ${allSpans.length}`);
 
             // 最も深いレベルのspanを探す
             let deepestSpan: HTMLElement | null = null;
@@ -486,11 +444,9 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
             });
 
             if (deepestSpan) {
-                console.log('最も深いspan要素を見つけました:', deepestSpan);
                 // 明示的に型チェックを行い、HTMLElementであることを確認
                 if (deepestSpan instanceof HTMLElement) {
                     deepestSpan.textContent = 'チェック';
-                    console.log('テキスト内容を"チェック"に変更しました（代替方法）');
                 } else {
                     console.error('deepestSpanはHTMLElementではありません');
                 }
@@ -500,19 +456,12 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
         }
 
         // クリックイベントを設定
-        console.log('クリックイベントを設定中...');
-        checkButton.addEventListener('click', () => {
-            console.log('チェックボタンがクリックされました');
-            // sidebar.tsの警告追加ロジックをcontent.tsから呼び出すため、content scriptからsidebarにメッセージを送る
-            try{
-                chrome.runtime.sendMessage({ type: "ADD_WARNING" }, (response) => {
-                console.log("ADD_WARNINGメッセージをsidebarに送信しました", response);
-            });
-            } catch (error) {
-                console.error('ADD_WARNINGメッセージの送信中にエラーが発生しました:', error);
-            }
+        checkButton.addEventListener('click', async () => {
+            const composingTweet = await getComposingTweetData();
+            console.log("取得した投稿中データ:", composingTweet);
+
+            chrome.runtime.sendMessage({ type: "ADD_WARNING", data: composingTweet });
         });
-        console.log('クリックイベントが設定されました');
 
         return checkButton;
     } catch (error) {
@@ -534,5 +483,46 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
 
         console.log('フォールバックボタンを作成しました');
         return fallbackButton;
+    }
+}
+
+// 投稿中のツイートデータを取得する関数
+async function getComposingTweetData(): Promise<TweetData | null> {
+    try {
+        const tweetBox = document.querySelector('[data-testid="tweetTextarea_0"]') as HTMLElement;
+        if (!tweetBox) {
+            console.warn("ツイート入力欄が見つかりませんでした");
+            return null;
+        }
+
+        const text = tweetBox.innerText.trim();
+
+        // 添付画像の取得
+        const imageTags = document.querySelectorAll('img');
+        const images: string[] = Array.from(imageTags)
+            .map(img => img.getAttribute("src"))
+            .filter((src): src is string => !!src && src.startsWith("data:image/"));
+
+        // 添付動画の取得（videoタグまたはcanvas経由）
+        let videoUrl: string | null = null;
+        const videoTag = document.querySelector("video");
+        if (videoTag?.src?.startsWith("blob:")) {
+            videoUrl = videoTag.src;
+        }
+
+        const tweetData: TweetData = {
+            type: "tweet",
+            user: null, // 必要なら localStorage やプロフィール欄から取得可能
+            text: text || null,
+            datetime: new Date().toISOString(),
+            url: null,
+            images,
+            video: videoUrl
+        };
+
+        return tweetData;
+    } catch (e) {
+        console.error("投稿中データの取得に失敗:", e);
+        return null;
     }
 }

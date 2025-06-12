@@ -1,7 +1,15 @@
-// スタイルシートのインポート
 import '../styles/sidebar.css';
-
 /// <reference types="chrome" />
+
+interface TweetData {
+    type: string;
+    user: string | null;
+    text: string | null;
+    datetime: string | null;
+    url: string | null;
+    images: string[];
+    video: string | null;
+}
 
 interface Settings {
     enabled: boolean;
@@ -22,8 +30,13 @@ interface GetSettingsMessage { type: 'GET_SETTINGS'; }
 interface UpdateSettingsMessage { type: 'UPDATE_SETTINGS'; settings: Settings; }
 type Message = GetSettingsMessage | UpdateSettingsMessage;
 
-interface SettingsResponse { settings: Settings; }
-interface UpdateResponse { success: boolean; }
+interface SettingsResponse {
+    settings: Settings;
+}
+
+interface UpdateResponse {
+    success: boolean;
+}
 
 function formatTime(date: Date): string {
     return date.toTimeString().split(' ')[0];
@@ -71,36 +84,38 @@ function setActiveView(viewName: 'settings' | 'empty'): void {
     }
 }
 
+// グローバルフラグでリスナーの重複を防ぐ
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "ADD_WARNING") {
-        const warningsContainer = document.getElementById('warningsContainer');
-        const settingsView = document.getElementById('settingsView');
-        const emptyView = document.getElementById('emptyView');
-        const toggleViewButton = document.getElementById('toggleViewBtn');
-
-        if (!warningsContainer || !settingsView || !emptyView || !toggleViewButton) {
-            sendResponse({ success: false, error: "必要な要素が見つかりません" });
-            return true;
-        }
+        const tweetData = message.data;
 
         const warning = createWarningElement(
             "高",
-            ["不適切なコンテンツ", "攻撃的な表現"],
-            "「これはテスト用の攻撃的な発言です。」",
+            ["不適切な内容"],
+            tweetData?.text ?? "(内容取得失敗)",
             new Date()
         );
-        warningsContainer.prepend(warning);
 
-        requestAnimationFrame(() => {
-            warning.classList.add('show');
-            const isSettings = settingsView.classList.contains('active');
-            setActiveView(isSettings ? 'settings' : 'empty');
-            sendResponse({ success: true });
-        });
+        const container = document.getElementById('warningsContainer');
+        const settingsView = document.getElementById('settingsView');
+
+        if (container) {
+            container.prepend(warning);
+            requestAnimationFrame(() => {
+                warning.classList.add('show');
+                const isSettings = settingsView?.classList.contains('active');
+                setActiveView(isSettings ? 'settings' : 'empty');
+                sendResponse({ success: true });
+            });
+        } else {
+            console.warn('warningsContainer が見つかりませんでした');
+            sendResponse({ success: false });
+        }
 
         return true;
     }
 });
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const enabledCheckbox = document.getElementById('enabled') as HTMLInputElement;
