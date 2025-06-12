@@ -156,4 +156,22 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
         })();
         return true; // 非同期レスポンスを示すためにtrueを返す
     }
+
+    if (message.type === "ADD_WARNING") {
+        chrome.sidePanel.open({ windowId: sender?.tab?.windowId })
+            .then(() => {
+                // 少し待ってから sidebar にメッセージを送信
+                setTimeout(() => {
+                    chrome.runtime.sendMessage({ type: 'ADD_WARNING' }, (res) => {
+                        sendResponse(res);
+                    });
+                }, 200); // 200ms 程度の遅延で十分なことが多い
+            })
+            .catch((err) => {
+                console.error("サイドパネルのオープンに失敗:", err);
+                sendResponse({ success: false, error: "サイドパネルのオープンに失敗しました" });
+            });
+        return true;
+    }
+
 });

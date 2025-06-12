@@ -178,19 +178,14 @@ chrome.runtime.onMessage.addListener((msg: { type: string }, sender, sendRespons
 
 // 以下、チェックボタン追加のための実装
 
-console.log('X.com用コンテンツスクリプトが読み込まれました');
-
 // 即時実行関数でスクリプトを実行
 (function () {
-    console.log('チェックボタン機能の初期化を開始します');
 
     // DOMContentLoadedイベントが既に発生しているか確認
     if (document.readyState === 'loading') {
-        console.log('ドキュメントはまだ読み込み中です。DOMContentLoadedイベントを待機します');
         // ページが完全に読み込まれた後に実行
         document.addEventListener('DOMContentLoaded', initializeObserver);
     } else {
-        console.log('ドキュメントは既に読み込まれています。すぐに初期化します');
         // すでにDOMが読み込まれている場合は直接実行
         initializeObserver();
     }
@@ -206,14 +201,12 @@ console.log('X.com用コンテンツスクリプトが読み込まれました')
  * MutationObserverを初期化する関数
  */
 function initializeObserver(): void {
-    console.log('MutationObserverを初期化します');
 
     // 初回実行
     tryAddCheckButton();
 
     // MutationObserverを使用してDOMの変更を監視
     const observer = new MutationObserver((mutations) => {
-        console.log(`DOM変更を検出: ${mutations.length}件の変更`);
         tryAddCheckButton();
     });
 
@@ -233,7 +226,6 @@ function initializeObserver(): void {
  */
 function tryAddCheckButton(): void {
     try {
-        console.log('チェックボタン追加処理を開始します');
 
         // インラインツールバーのチェックボタンを追加
         addCheckButtonToToolbar();
@@ -254,27 +246,21 @@ function tryAddCheckButton(): void {
  */
 function addCheckButtonToToolbar(): void {
     // ツールバーを探す
-    console.log('インラインツールバー要素を検索中...');
     const toolBar = document.querySelector('[data-testid="toolBar"]');
     if (!toolBar) {
-        console.log('インラインツールバー要素が見つかりませんでした');
         // 現在のDOMの状態をログに出力
         logCurrentDOMState();
         return;
     }
-    console.log('インラインツールバー要素が見つかりました:', toolBar);
 
     // すでにチェックボタンが追加されているか確認
-    console.log('既存のチェックボタンを確認中...');
     const existingCheckButton = document.querySelector('[data-testid="checkButtonInline"]');
     if (existingCheckButton) {
         console.log('インラインチェックボタンは既に追加されています');
         return;
     }
-    console.log('既存のインラインチェックボタンは見つかりませんでした。新しく追加します');
 
     // ポストボタンを探す
-    console.log('インラインポストボタンを検索中...');
     const postButton = document.querySelector('[data-testid="tweetButtonInline"]') as HTMLElement;
     if (!postButton) {
         console.log('インラインポストボタンが見つかりませんでした');
@@ -517,7 +503,14 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
         console.log('クリックイベントを設定中...');
         checkButton.addEventListener('click', () => {
             console.log('チェックボタンがクリックされました');
-            // ここに実際の処理を追加
+            // sidebar.tsの警告追加ロジックをcontent.tsから呼び出すため、content scriptからsidebarにメッセージを送る
+            try{
+                chrome.runtime.sendMessage({ type: "ADD_WARNING" }, (response) => {
+                console.log("ADD_WARNINGメッセージをsidebarに送信しました", response);
+            });
+            } catch (error) {
+                console.error('ADD_WARNINGメッセージの送信中にエラーが発生しました:', error);
+            }
         });
         console.log('クリックイベントが設定されました');
 
