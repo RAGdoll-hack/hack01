@@ -626,293 +626,293 @@ def detect_copyrighted_music_from_audio(audio_path: str) -> dict:
             'error': f'Unexpected ACRCloud error: {e}'
         }
 
-# --- 8. 単一ソースからのアラート生成 ---
-def generate_alert(
-    gemini_analysis: dict,
-    incident_details: dict,
-    gpt_context_judgement: dict,
-    transcripts: list[dict],
-    music_detection_result: dict = None,
-    source_type: str = "video" # source_type を追加
-) -> dict:
-    """
-    全ての分析結果を統合し、コンプライアンスアラートを生成する。
+# # --- 8. 単一ソースからのアラート生成 ---
+# def generate_alert(
+#     gemini_analysis: dict,
+#     incident_details: dict,
+#     gpt_context_judgement: dict,
+#     transcripts: list[dict],
+#     music_detection_result: dict = None,
+#     source_type: str = "video" # source_type を追加
+# ) -> dict:
+#     """
+#     全ての分析結果を統合し、コンプライアンスアラートを生成する。
 
-    Args:
-        gemini_analysis (dict): Geminiによる深掘り分析結果。
-        incident_details (dict): 事故時刻と関連分野の詳細。
-        gpt_context_judgement (dict): GPTによる文脈判断結果。
-        transcripts (list[dict]): タイムスタンプ付き文字起こしデータ。
-        music_detection_result (dict, optional): 著作権音楽検出の結果。
-        source_type (str): このアラートが「video」または「text_input」のどちらのソースから生成されたか。
+#     Args:
+#         gemini_analysis (dict): Geminiによる深掘り分析結果。
+#         incident_details (dict): 事故時刻と関連分野の詳細。
+#         gpt_context_judgement (dict): GPTによる文脈判断結果。
+#         transcripts (list[dict]): タイムスタンプ付き文字起こしデータ。
+#         music_detection_result (dict, optional): 著作権音楽検出の結果。
+#         source_type (str): このアラートが「video」または「text_input」のどちらのソースから生成されたか。
 
-    Returns:
-        dict: アラートレベル（重・中・予）、理由、関連タイムスタンプを含む辞書。
-    """
-    alert_level = "予"
-    reasons = []
+#     Returns:
+#         dict: アラートレベル（重・中・予）、理由、関連タイムスタンプを含む辞書。
+#     """
+#     alert_level = "予"
+#     reasons = []
     
-    # 暫定のタイムスタンプとテキストを設定
-    alert_timestamp = incident_details.get('incident_timestamp_approx', '不明')
-    original_text_segment = '該当テキストなし'
+#     # 暫定のタイムスタンプとテキストを設定
+#     alert_timestamp = incident_details.get('incident_timestamp_approx', '不明')
+#     original_text_segment = '該当テキストなし'
 
-    # --- original_text_segment の設定ロジック ---
-    if source_type == "text_input":
-        # テキスト入力のみの場合、transcriptsはダミーで、text_inputそのものがオリジナルテキスト
-        # `cross_check_and_annotate_incident` で `context_for_gpt` に格納されたものが望ましい
-        original_text_segment = incident_details.get('context_for_gpt', 'N/A')
-        # テキスト入力の場合、タイムスタンプは通常不明
-        alert_timestamp = "不明" # 明示的に不明にする
-    elif source_type == "video":
-        # 動画の場合、タイムスタンプに基づいて正確なテキストを抽出
-        if ' - ' in alert_timestamp and alert_timestamp != '不明':
-            try:
-                start_m, start_s = map(int, alert_timestamp.split(' - ')[0].split(':'))
-                end_m, end_s = map(int, alert_timestamp.split(' - ')[1].split(':'))
-                start_sec_float = float(start_m * 60 + start_s)
-                end_sec_float = float(end_m * 60 + end_s)
+#     # --- original_text_segment の設定ロジック ---
+#     if source_type == "text_input":
+#         # テキスト入力のみの場合、transcriptsはダミーで、text_inputそのものがオリジナルテキスト
+#         # `cross_check_and_annotate_incident` で `context_for_gpt` に格納されたものが望ましい
+#         original_text_segment = incident_details.get('context_for_gpt', 'N/A')
+#         # テキスト入力の場合、タイムスタンプは通常不明
+#         alert_timestamp = "不明" # 明示的に不明にする
+#     elif source_type == "video":
+#         # 動画の場合、タイムスタンプに基づいて正確なテキストを抽出
+#         if ' - ' in alert_timestamp and alert_timestamp != '不明':
+#             try:
+#                 start_m, start_s = map(int, alert_timestamp.split(' - ')[0].split(':'))
+#                 end_m, end_s = map(int, alert_timestamp.split(' - ')[1].split(':'))
+#                 start_sec_float = float(start_m * 60 + start_s)
+#                 end_sec_float = float(end_m * 60 + end_s)
                 
-                for s in transcripts:
-                    if max(s['start'], start_sec_float) < min(s['end'], end_sec_float):
-                        original_text_segment = s['text']
-                        break
-            except ValueError:
-                pass # タイムスタンプ解析エラーの場合はデフォルト値のまま
-    # --- original_text_segment の設定ロジックここまで ---
+#                 for s in transcripts:
+#                     if max(s['start'], start_sec_float) < min(s['end'], end_sec_float):
+#                         original_text_segment = s['text']
+#                         break
+#             except ValueError:
+#                 pass # タイムスタンプ解析エラーの場合はデフォルト値のまま
+#     # --- original_text_segment の設定ロジックここまで ---
 
-    print(f"DEBUG: generate_alert (Source: {source_type}): アラートを生成します。現在のレベル: {alert_level}")
+#     print(f"DEBUG: generate_alert (Source: {source_type}): アラートを生成します。現在のレベル: {alert_level}")
 
-    # --- 1. 著作権のある音楽が検出された場合の判断（最優先） ---
-    # 音楽検出は動画ソースにのみ適用されるため、source_type == "video" で確認
-    if source_type == "video" and music_detection_result and music_detection_result.get('detected') and music_detection_result.get('is_copyrighted'):
-        alert_level = "重"
-        reasons.append(
-            f"**著作権違反の音楽検出**: 著作権保護された音楽 '{music_detection_result.get('title', '不明')}' "
-            f"by '{music_detection_result.get('artist', '不明')}' が検出されました。"
-        )
-        # 音楽検出のタイムスタンプを優先的に採用
-        if music_detection_result.get('start_time') is not None and music_detection_result.get('end_time') is not None:
-             alert_timestamp = (
-                 f"{int(music_detection_result['start_time'] // 60)}:{int(music_detection_result['start_time'] % 60):02d} - "
-                 f"{int(music_detection_result['end_time'] // 60)}:{int(music_detection_result['end_time'] % 60):02d}"
-             )
-        original_text_segment = "動画内の音楽部分（文字起こしなし）" # 音楽なのでテキストはなし
+#     # --- 1. 著作権のある音楽が検出された場合の判断（最優先） ---
+#     # 音楽検出は動画ソースにのみ適用されるため、source_type == "video" で確認
+#     if source_type == "video" and music_detection_result and music_detection_result.get('detected') and music_detection_result.get('is_copyrighted'):
+#         alert_level = "重"
+#         reasons.append(
+#             f"**著作権違反の音楽検出**: 著作権保護された音楽 '{music_detection_result.get('title', '不明')}' "
+#             f"by '{music_detection_result.get('artist', '不明')}' が検出されました。"
+#         )
+#         # 音楽検出のタイムスタンプを優先的に採用
+#         if music_detection_result.get('start_time') is not None and music_detection_result.get('end_time') is not None:
+#              alert_timestamp = (
+#                  f"{int(music_detection_result['start_time'] // 60)}:{int(music_detection_result['start_time'] % 60):02d} - "
+#                  f"{int(music_detection_result['end_time'] // 60)}:{int(music_detection_result['end_time'] % 60):02d}"
+#              )
+#         original_text_segment = "動画内の音楽部分（文字起こしなし）" # 音楽なのでテキストはなし
 
-    # --- 2. Geminiの初期評価に基づく判断 ---
-    current_level_before_gemini = alert_level 
-    if gemini_analysis.get('gemini_risk_assessment') == '高':
-        if alert_level != "重":
-            alert_level = "重"
-        reasons.append(f"**Gemini初期評価**: 重大なコンプライアンスリスクが検出されました。理由: {gemini_analysis.get('gemini_summary', '不明')}")
-    elif gemini_analysis.get('gemini_risk_assessment') == '中':
-        if alert_level == "予":
-            alert_level = "中"
-        elif alert_level != "重":
-            reasons.append(f"**Gemini初期評価**: 中程度のコンプライアンスリスクが検出されました。理由: {gemini_analysis.get('gemini_summary', '不明')}")
+#     # --- 2. Geminiの初期評価に基づく判断 ---
+#     current_level_before_gemini = alert_level 
+#     if gemini_analysis.get('gemini_risk_assessment') == '高':
+#         if alert_level != "重":
+#             alert_level = "重"
+#         reasons.append(f"**Gemini初期評価**: 重大なコンプライアンスリスクが検出されました。理由: {gemini_analysis.get('gemini_summary', '不明')}")
+#     elif gemini_analysis.get('gemini_risk_assessment') == '中':
+#         if alert_level == "予":
+#             alert_level = "中"
+#         elif alert_level != "重":
+#             reasons.append(f"**Gemini初期評価**: 中程度のコンプライアンスリスクが検出されました。理由: {gemini_analysis.get('gemini_summary', '不明')}")
     
-    # --- 3. GPTによる文脈判断に基づく調整 ---
-    gpt_risk_modifier = gpt_context_judgement.get('gpt_risk_modifier', 'なし')
-    contextual_intent = gpt_context_judgement.get('contextual_intent', '')
-    gpt_additional_risk_factor = gpt_context_judgement.get('gpt_additional_risk_factor', '')
+#     # --- 3. GPTによる文脈判断に基づく調整 ---
+#     gpt_risk_modifier = gpt_context_judgement.get('gpt_risk_modifier', 'なし')
+#     contextual_intent = gpt_context_judgement.get('contextual_intent', '')
+#     gpt_additional_risk_factor = gpt_context_judgement.get('gpt_additional_risk_factor', '')
 
-    if gpt_risk_modifier == '増幅':
-        if alert_level == "予":
-            alert_level = "中"
-            reasons.append(f"**文脈評価（GPT）**: 発言の意図がリスクを増幅させると判断されました。意図: {contextual_intent}")
-        elif alert_level == "中":
-            alert_level = "重"
-            reasons.append(f"**文脈評価（GPT）**: 発言の意図がリスクをさらに増幅させると判断されました。意図: {contextual_intent}")
-        if gpt_additional_risk_factor and gpt_additional_risk_factor != 'なし':
-            reasons.append(f"追加のリスク要因: {gpt_additional_risk_factor}")
-    elif gpt_risk_modifier == '軽減':
-        if alert_level == "重":
-            alert_level = "中"
-            reasons.append(f"**文脈評価（GPT）**: 発言が皮肉や誤解の可能性があり、アラートレベルを調整しました。要詳細確認。意図: {contextual_intent}")
-        elif alert_level == "中":
-            alert_level = "予"
-            reasons.append(f"**文脈評価（GPT）**: 発言が皮肉や誤解の可能性があり、アラートレベルを調整しました。要詳細確認。意図: {contextual_intent}")
-        if gpt_additional_risk_factor and gpt_additional_risk_factor != 'なし':
-            reasons.append(f"軽減要因: {gpt_additional_risk_factor}")
-    else:
-        if contextual_intent and "真剣な情報伝達" in contextual_intent:
-            if alert_level == "予":
-                alert_level = "中"
-                reasons.append(f"**文脈評価（GPT）**: 発言が真剣な情報伝達であると確認されました。")
-            elif alert_level == "中" and "深刻な" in gpt_context_judgement.get('gpt_context_assessment', ''):
-                alert_level = "重"
-                reasons.append(f"**文脈評価（GPT）**: 文脈からより深刻なリスクが示唆されました。")
+#     if gpt_risk_modifier == '増幅':
+#         if alert_level == "予":
+#             alert_level = "中"
+#             reasons.append(f"**文脈評価（GPT）**: 発言の意図がリスクを増幅させると判断されました。意図: {contextual_intent}")
+#         elif alert_level == "中":
+#             alert_level = "重"
+#             reasons.append(f"**文脈評価（GPT）**: 発言の意図がリスクをさらに増幅させると判断されました。意図: {contextual_intent}")
+#         if gpt_additional_risk_factor and gpt_additional_risk_factor != 'なし':
+#             reasons.append(f"追加のリスク要因: {gpt_additional_risk_factor}")
+#     elif gpt_risk_modifier == '軽減':
+#         if alert_level == "重":
+#             alert_level = "中"
+#             reasons.append(f"**文脈評価（GPT）**: 発言が皮肉や誤解の可能性があり、アラートレベルを調整しました。要詳細確認。意図: {contextual_intent}")
+#         elif alert_level == "中":
+#             alert_level = "予"
+#             reasons.append(f"**文脈評価（GPT）**: 発言が皮肉や誤解の可能性があり、アラートレベルを調整しました。要詳細確認。意図: {contextual_intent}")
+#         if gpt_additional_risk_factor and gpt_additional_risk_factor != 'なし':
+#             reasons.append(f"軽減要因: {gpt_additional_risk_factor}")
+#     else:
+#         if contextual_intent and "真剣な情報伝達" in contextual_intent:
+#             if alert_level == "予":
+#                 alert_level = "中"
+#                 reasons.append(f"**文脈評価（GPT）**: 発言が真剣な情報伝達であると確認されました。")
+#             elif alert_level == "中" and "深刻な" in gpt_context_judgement.get('gpt_context_assessment', ''):
+#                 alert_level = "重"
+#                 reasons.append(f"**文脈評価（GPT）**: 文脈からより深刻なリスクが示唆されました。")
 
-    # --- 4. incident_details / accident_time / field からの直接的なアラート条件 ---
-    if incident_details.get('relevant_field') == '情報セキュリティ・個人情報保護':
-        if any(kw in gemini_analysis.get('keywords', []) for kw in ['顧客情報漏洩', '不適切発言', '個人情報流出']):
-            if alert_level != "重":
-                alert_level = "重"
-            reasons.append(f"**特定条件一致**: 関連分野「{incident_details.get('relevant_field')}」で「顧客情報漏洩」または「不適切発言」が検出されたため、重大なコンプライアンス違反の可能性。")
+#     # --- 4. incident_details / accident_time / field からの直接的なアラート条件 ---
+#     if incident_details.get('relevant_field') == '情報セキュリティ・個人情報保護':
+#         if any(kw in gemini_analysis.get('keywords', []) for kw in ['顧客情報漏洩', '不適切発言', '個人情報流出']):
+#             if alert_level != "重":
+#                 alert_level = "重"
+#             reasons.append(f"**特定条件一致**: 関連分野「{incident_details.get('relevant_field')}」で「顧客情報漏洩」または「不適切発言」が検出されたため、重大なコンプライアンス違反の可能性。")
     
-    final_reason = " ".join(reasons) if reasons else "特段の懸念事項は見られませんでした。"
+#     final_reason = " ".join(reasons) if reasons else "特段の懸念事項は見られませんでした。"
     
-    # タイムスタンプは、音楽検出が最優先、次にincident_details、最後にテキスト入力の場合は不明
-    if alert_timestamp == '不明' and incident_details.get('incident_timestamp_approx') != 'N/A':
-        alert_timestamp = incident_details.get('incident_timestamp_approx', '不明')
+#     # タイムスタンプは、音楽検出が最優先、次にincident_details、最後にテキスト入力の場合は不明
+#     if alert_timestamp == '不明' and incident_details.get('incident_timestamp_approx') != 'N/A':
+#         alert_timestamp = incident_details.get('incident_timestamp_approx', '不明')
     
-    return {
-        'level': alert_level,
-        'reason': final_reason,
-        'timestamp': alert_timestamp,
-        'original_text_segment': original_text_segment
-    }
+#     return {
+#         'level': alert_level,
+#         'reason': final_reason,
+#         'timestamp': alert_timestamp,
+#         'original_text_segment': original_text_segment
+#     }
 
-# --- 9. アラートレベルの優先度を定義するヘルパー関数 ---
-def get_alert_level_priority(level: str) -> int:
-    if level == "重": return 3
-    if level == "中": return 2
-    if level == "予": return 1
-    return 0 # 不明など
+# # --- 9. アラートレベルの優先度を定義するヘルパー関数 ---
+# def get_alert_level_priority(level: str) -> int:
+#     if level == "重": return 3
+#     if level == "中": return 2
+#     if level == "予": return 1
+#     return 0 # 不明など
 
-# --- 10. 複数ソースからのアラート統合 ---
-def integrate_multi_source_alerts(video_result: dict = None, text_result: dict = None) -> dict:
-    """
-    動画由来とテキスト由来のアラート結果を統合し、最終的なコンプライアンスアラートを生成する。
-    """
-    final_alert_level = "予"
-    final_reasons = []
-    final_timestamp = "不明"
-    final_original_text_segment = "N/A" # 最終的に最も関連性の高いテキストを保持
+# # --- 10. 複数ソースからのアラート統合 ---
+# def integrate_multi_source_alerts(video_result: dict = None, text_result: dict = None) -> dict:
+#     """
+#     動画由来とテキスト由来のアラート結果を統合し、最終的なコンプライアンスアラートを生成する。
+#     """
+#     final_alert_level = "予"
+#     final_reasons = []
+#     final_timestamp = "不明"
+#     final_original_text_segment = "N/A" # 最終的に最も関連性の高いテキストを保持
 
-    # 動画由来のアラートを処理
-    if video_result:
-        video_specific_alert = generate_alert(
-            video_result['gemini_analysis'],
-            video_result['incident_details'],
-            video_result['gpt_context_judgement'],
-            video_result['transcripts'],
-            video_result['music_detection_result'],
-            source_type="video" # source_type を追加
-        )
-        # 動画由来のアラートレベルと理由を統合
-        if get_alert_level_priority(video_specific_alert['level']) > get_alert_level_priority(final_alert_level):
-            final_alert_level = video_specific_alert['level']
-        final_reasons.append(f"[動画分析]: {video_specific_alert['reason']}")
+#     # 動画由来のアラートを処理
+#     if video_result:
+#         video_specific_alert = generate_alert(
+#             video_result['gemini_analysis'],
+#             video_result['incident_details'],
+#             video_result['gpt_context_judgement'],
+#             video_result['transcripts'],
+#             video_result['music_detection_result'],
+#             source_type="video" # source_type を追加
+#         )
+#         # 動画由来のアラートレベルと理由を統合
+#         if get_alert_level_priority(video_specific_alert['level']) > get_alert_level_priority(final_alert_level):
+#             final_alert_level = video_specific_alert['level']
+#         final_reasons.append(f"[動画分析]: {video_specific_alert['reason']}")
         
-        # タイムスタンプとテキストセグメントは動画が優先される
-        if video_specific_alert['timestamp'] != '不明':
-            final_timestamp = video_specific_alert['timestamp']
-        if video_specific_alert['original_text_segment'] != '該当テキストなし':
-            final_original_text_segment = video_specific_alert['original_text_segment']
+#         # タイムスタンプとテキストセグメントは動画が優先される
+#         if video_specific_alert['timestamp'] != '不明':
+#             final_timestamp = video_specific_alert['timestamp']
+#         if video_specific_alert['original_text_segment'] != '該当テキストなし':
+#             final_original_text_segment = video_specific_alert['original_text_segment']
 
-    # テキスト由来のアラートを処理
-    if text_result:
-        text_specific_alert = generate_alert(
-            text_result['gemini_analysis'],
-            text_result['incident_details'],
-            text_result['gpt_context_judgement'],
-            text_result['transcripts'], # ダミーのtranscript
-            text_result['music_detection_result'], # None
-            source_type="text_input" # source_type を追加
-        )
-        # テキスト由来のアラートレベルと理由を統合
-        if get_alert_level_priority(text_specific_alert['level']) > get_alert_level_priority(final_alert_level):
-            final_alert_level = text_specific_alert['level']
-        final_reasons.append(f"[テキスト分析]: {text_specific_alert['reason']}")
+#     # テキスト由来のアラートを処理
+#     if text_result:
+#         text_specific_alert = generate_alert(
+#             text_result['gemini_analysis'],
+#             text_result['incident_details'],
+#             text_result['gpt_context_judgement'],
+#             text_result['transcripts'], # ダミーのtranscript
+#             text_result['music_detection_result'], # None
+#             source_type="text_input" # source_type を追加
+#         )
+#         # テキスト由来のアラートレベルと理由を統合
+#         if get_alert_level_priority(text_specific_alert['level']) > get_alert_level_priority(final_alert_level):
+#             final_alert_level = text_specific_alert['level']
+#         final_reasons.append(f"[テキスト分析]: {text_specific_alert['reason']}")
         
-        # テキスト由来のタイムスタンプは通常「不明」だが、もし特定できれば、動画のタイムスタンプがなければ採用
-        if text_specific_alert['timestamp'] != '不明' and final_timestamp == '不明':
-             final_timestamp = text_specific_alert['timestamp']
-        # テキスト由来のオリジナルテキストセグメントも、動画のものがなければ採用
-        if text_specific_alert['original_text_segment'] != '該当テキストなし' and final_original_text_segment == 'N/A':
-            final_original_text_segment = text_specific_alert['original_text_segment']
+#         # テキスト由来のタイムスタンプは通常「不明」だが、もし特定できれば、動画のタイムスタンプがなければ採用
+#         if text_specific_alert['timestamp'] != '不明' and final_timestamp == '不明':
+#              final_timestamp = text_specific_alert['timestamp']
+#         # テキスト由来のオリジナルテキストセグメントも、動画のものがなければ採用
+#         if text_specific_alert['original_text_segment'] != '該当テキストなし' and final_original_text_segment == 'N/A':
+#             final_original_text_segment = text_specific_alert['original_text_segment']
 
-    return {
-        'level': final_alert_level,
-        'reason': " ".join(final_reasons),
-        'timestamp': final_timestamp,
-        'original_text_segment': final_original_text_segment
-    }
+#     return {
+#         'level': final_alert_level,
+#         'reason': " ".join(final_reasons),
+#         'timestamp': final_timestamp,
+#         'original_text_segment': final_original_text_segment
+#     }
 
 
-# --- 11. エージェントの実行エントリポイント ---
-def run_compliance_agent(text_input: str = None, video_path: str = None) -> dict:
-    """
-    コンプライアンス判定AIエージェントの全処理を実行する。
-    テキストのみ、または動画パスを指定して実行可能。
-    """
-    video_alert_data = None
-    text_alert_data = None
+# # --- 11. エージェントの実行エントリポイント ---
+# def run_compliance_agent(text_input: str = None, video_path: str = None) -> dict:
+#     """
+#     コンプライアンス判定AIエージェントの全処理を実行する。
+#     テキストのみ、または動画パスを指定して実行可能。
+#     """
+#     video_alert_data = None
+#     text_alert_data = None
 
-    # --- 入力タイプの判定と初期処理 ---
-    if video_path and text_input:
-        print("WARNING: 動画パスとテキスト入力の両方が指定されました。両方を分析し、結果を統合します。")
+#     # --- 入力タイプの判定と初期処理 ---
+#     if video_path and text_input:
+#         print("WARNING: 動画パスとテキスト入力の両方が指定されました。両方を分析し、結果を統合します。")
         
-        # 動画処理パス
-        transcripts_with_timestamps_video = process_video_to_transcript(video_path)
-        plain_text_from_video = extract_plain_text(transcripts_with_timestamps_video['segments'])
-        music_detection_result = None
-        audio_output_path = "temp_audio_for_music_detection.mp3"
-        audio_extracted = extract_audio_from_video(video_path, audio_output_path)
-        if audio_extracted:
-            music_detection_result = detect_copyrighted_music_from_audio(audio_output_path)
-            os.remove(audio_output_path)
-        else:
-            print("WARNING: 音声抽出に失敗したため、著作権音楽検出はスキップされます。")
-        gemini_analysis_video = analyze_with_gemini_deep_research(plain_text_from_video)
-        incident_details_video = cross_check_and_annotate_incident(gemini_analysis_video, transcripts_with_timestamps_video['segments'])
-        gpt_context_judgement_video = judge_context_with_gpt(
-            incident_details_video.get('context_for_gpt', plain_text_from_video),
-            incident_details_video.get('incident_timestamp_approx', ''),
-            incident_details_video.get('relevant_field', '')
-        )
-        video_alert_data = {
-            'gemini_analysis': gemini_analysis_video,
-            'incident_details': incident_details_video,
-            'gpt_context_judgement': gpt_context_judgement_video,
-            'transcripts': transcripts_with_timestamps_video['segments'],
-            'music_detection_result': music_detection_result
-        }
+#         # 動画処理パス
+#         transcripts_with_timestamps_video = process_video_to_transcript(video_path)
+#         plain_text_from_video = extract_plain_text(transcripts_with_timestamps_video['segments'])
+#         music_detection_result = None
+#         audio_output_path = "temp_audio_for_music_detection.mp3"
+#         audio_extracted = extract_audio_from_video(video_path, audio_output_path)
+#         if audio_extracted:
+#             music_detection_result = detect_copyrighted_music_from_audio(audio_output_path)
+#             os.remove(audio_output_path)
+#         else:
+#             print("WARNING: 音声抽出に失敗したため、著作権音楽検出はスキップされます。")
+#         gemini_analysis_video = analyze_with_gemini_deep_research(plain_text_from_video)
+#         incident_details_video = cross_check_and_annotate_incident(gemini_analysis_video, transcripts_with_timestamps_video['segments'])
+#         gpt_context_judgement_video = judge_context_with_gpt(
+#             incident_details_video.get('context_for_gpt', plain_text_from_video),
+#             incident_details_video.get('incident_timestamp_approx', ''),
+#             incident_details_video.get('relevant_field', '')
+#         )
+#         video_alert_data = {
+#             'gemini_analysis': gemini_analysis_video,
+#             'incident_details': incident_details_video,
+#             'gpt_context_judgement': gpt_context_judgement_video,
+#             'transcripts': transcripts_with_timestamps_video['segments'],
+#             'music_detection_result': music_detection_result
+#         }
 
-        # テキスト処理パス
-        plain_text_from_input = text_input
-        dummy_transcripts_for_text = [{"start": 0.0, "end": 0.0, "text": text_input}]
-        gemini_analysis_text = analyze_with_gemini_deep_research(plain_text_from_input)
-        incident_details_text = cross_check_and_annotate_incident(gemini_analysis_text, dummy_transcripts_for_text)
-        gpt_context_judgement_text = judge_context_with_gpt(
-            incident_details_text.get('context_for_gpt', plain_text_from_input),
-            incident_details_text.get('incident_timestamp_approx', ''),
-            incident_details_text.get('relevant_field', '')
-        )
-        text_alert_data = {
-            'gemini_analysis': gemini_analysis_text,
-            'incident_details': incident_details_text,
-            'gpt_context_judgement': gpt_context_judgement_text,
-            'transcripts': dummy_transcripts_for_text,
-            'music_detection_result': None # テキスト入力の場合は音楽検出なし
-        }
+#         # テキスト処理パス
+#         plain_text_from_input = text_input
+#         dummy_transcripts_for_text = [{"start": 0.0, "end": 0.0, "text": text_input}]
+#         gemini_analysis_text = analyze_with_gemini_deep_research(plain_text_from_input)
+#         incident_details_text = cross_check_and_annotate_incident(gemini_analysis_text, dummy_transcripts_for_text)
+#         gpt_context_judgement_text = judge_context_with_gpt(
+#             incident_details_text.get('context_for_gpt', plain_text_from_input),
+#             incident_details_text.get('incident_timestamp_approx', ''),
+#             incident_details_text.get('relevant_field', '')
+#         )
+#         text_alert_data = {
+#             'gemini_analysis': gemini_analysis_text,
+#             'incident_details': incident_details_text,
+#             'gpt_context_judgement': gpt_context_judgement_text,
+#             'transcripts': dummy_transcripts_for_text,
+#             'music_detection_result': None # テキスト入力の場合は音楽検出なし
+#         }
 
-    elif video_path:
-        print(f"DEBUG: 動画パス '{video_path}' を入力として処理を開始します。")
-        transcripts_with_timestamps = process_video_to_transcript(video_path)
-        plain_text = extract_plain_text(transcripts_with_timestamps['segments'])
-        music_detection_result = None
-        audio_output_path = "temp_audio_for_music_detection.mp3"
-        audio_extracted = extract_audio_from_video(video_path, audio_output_path)
-        if audio_extracted:
-            music_detection_result = detect_copyrighted_music_from_audio(audio_output_path)
-            os.remove(audio_output_path)
-        else:
-            print("WARNING: 音声抽出に失敗したため、著作権音楽検出はスキップされます。")
-        gemini_analysis = analyze_with_gemini_deep_research(plain_text)
-        incident_details = cross_check_and_annotate_incident(gemini_analysis, transcripts_with_timestamps['segments'])
-        gpt_context_judgement = judge_context_with_gpt(
-            incident_details.get('context_for_gpt', plain_text),
-            incident_details.get('incident_timestamp_approx', ''),
-            incident_details.get('relevant_field', '')
-        )
-        video_alert_data = {
-            'gemini_analysis': gemini_analysis,
-            'incident_details': incident_details,
-            'gpt_context_judgement': gpt_context_judgement,
-            'transcripts': transcripts_with_timestamps['segments'],
-            'music_detection_result': music_detection_result
-        }
+#     elif video_path:
+#         print(f"DEBUG: 動画パス '{video_path}' を入力として処理を開始します。")
+#         transcripts_with_timestamps = process_video_to_transcript(video_path)
+#         plain_text = extract_plain_text(transcripts_with_timestamps['segments'])
+#         music_detection_result = None
+#         audio_output_path = "temp_audio_for_music_detection.mp3"
+#         audio_extracted = extract_audio_from_video(video_path, audio_output_path)
+#         if audio_extracted:
+#             music_detection_result = detect_copyrighted_music_from_audio(audio_output_path)
+#             os.remove(audio_output_path)
+#         else:
+#             print("WARNING: 音声抽出に失敗したため、著作権音楽検出はスキップされます。")
+#         gemini_analysis = analyze_with_gemini_deep_research(plain_text)
+#         incident_details = cross_check_and_annotate_incident(gemini_analysis, transcripts_with_timestamps['segments'])
+#         gpt_context_judgement = judge_context_with_gpt(
+#             incident_details.get('context_for_gpt', plain_text),
+#             incident_details.get('incident_timestamp_approx', ''),
+#             incident_details.get('relevant_field', '')
+#         )
+#         video_alert_data = {
+#             'gemini_analysis': gemini_analysis,
+#             'incident_details': incident_details,
+#             'gpt_context_judgement': gpt_context_judgement,
+#             'transcripts': transcripts_with_timestamps['segments'],
+#             'music_detection_result': music_detection_result
+#         }
 
 # # テスト用のコード
 # if __name__ == "__main__":
@@ -1144,13 +1144,13 @@ def analyze_image_and_text_compliance(
                 "severity": "高" or "中" or "低",
                 "location": "画像内" or "テキスト内" or "画像とテキスト",
                 "detected_text": "検出された問題のあるテキスト",
-                "image_content": "画像の内容説明",
+                "image_content": "画像の内容説明(150文字以内)",
                 "context_analysis": "文脈分析結果"
             }}
         ],
-        "summary": "全体的な分析結果の要約",
+        "summary": "全体的な分析結果の要約(50文字以内)",
         "risk_level": "高" or "中" or "低",
-        "recommendations": ["推奨される対応策1", "推奨される対応策2", ...]
+        "recommendations": ["推奨される対応策"]
     }}
     """
 
@@ -1204,7 +1204,7 @@ def analyze_image_and_text_compliance(
             'recommendations': ['エラーの詳細を確認してください。']
         }
 
-# --- 画像とテキストのコンプライアンス分析テスト ---
+# # --- 画像とテキストのコンプライアンス分析テスト ---
 if __name__ == "__main__":
     try:
         # 画像とテキストのコンプライアンス分析のテスト
@@ -1257,9 +1257,6 @@ if __name__ == "__main__":
         print(f"\nERROR: テスト実行中にエラーが発生しました: {e}")
         import traceback
         traceback.print_exc()
-
-
-# checker.py の末尾などに追加
 
 def detailed_video_analysis(video_path, speaker_background=None):
     logs = []
