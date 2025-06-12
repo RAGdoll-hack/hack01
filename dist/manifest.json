@@ -21,8 +21,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://x.com/*", "*://twitter.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://x.com/*",
+        "*://twitter.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
   "permissions": [
