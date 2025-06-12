@@ -84,9 +84,17 @@
         }
 
         .post-warning {
-            border: 2px solid red;
             padding: 10px;
             margin-bottom: 10px;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.3s ease-in-out;
+        }
+
+        /* 高レベルの警告スタイル（赤ベース） */
+        .post-warning.danger-high {
+            border: 2px solid red;
             background: repeating-linear-gradient(
                 45deg,
                 rgba(255, 0, 0, 0.05),
@@ -94,10 +102,42 @@
                 rgba(255, 255, 255, 0) 10px,
                 rgba(255, 255, 255, 0) 20px
             );
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-out, opacity 0.3s ease-in-out;
+        }
+
+        /* 中レベルの警告スタイル（オレンジベース） */
+        .post-warning.danger-medium {
+            border: 2px solid orange;
+            background: repeating-linear-gradient(
+                    45deg,
+                    rgba(255, 165, 0, 0.05),
+                    rgba(255, 165, 0, 0.05) 10px,
+                    rgba(255, 255, 255, 0) 10px,
+                    rgba(255, 255, 255, 0) 20px
+            );
+        }
+
+        /* 低レベルの警告スタイル（緑ベース） */
+        .post-warning.danger-low {
+            border: 2px solid green;
+            background: repeating-linear-gradient(
+                    45deg,
+                    rgba(0, 128, 0, 0.05),
+                    rgba(0, 128, 0, 0.05) 10px,
+                    rgba(255, 255, 255, 0) 10px,
+                    rgba(255, 255, 255, 0) 20px
+            );
+        }
+
+        /* 不明レベルの警告スタイル（グレーベース） */
+        .post-warning.danger-unknown {
+            border: 2px solid gray;
+            background: repeating-linear-gradient(
+                    45deg,
+                    rgba(128, 128, 128, 0.05),
+                    rgba(128, 128, 128, 0.05) 10px,
+                    rgba(255, 255, 255, 0) 10px,
+                    rgba(255, 255, 255, 0) 20px
+            );
         }
         .post-warning.show {
             max-height: 500px; /* 十分な高さを指定 */
@@ -117,7 +157,6 @@
         }
         .warning-title {
             font-size: 1.5em;
-            color: red;
             font-weight: bold;
         }
         .warning-timestamp {
@@ -133,8 +172,31 @@
             text-align: center;
         }
         .warning-danger-value {
-            color: red;
             font-weight: bold;
+        }
+
+        /* 高レベルの警告テキストカラー */
+        .danger-high .warning-title,
+        .danger-high .warning-danger-value {
+            color: red;
+        }
+
+        /* 中レベルの警告テキストカラー */
+        .danger-medium .warning-title,
+        .danger-medium .warning-danger-value {
+            color: orange;
+        }
+
+        /* 低レベルの警告テキストカラー */
+        .danger-low .warning-title,
+        .danger-low .warning-danger-value {
+            color: green;
+        }
+
+        /* 不明レベルの警告テキストカラー */
+        .danger-unknown .warning-title,
+        .danger-unknown .warning-danger-value {
+            color: gray;
         }
 
         /* 設定画面と空の画面のスタイル */
