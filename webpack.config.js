@@ -81,6 +81,7 @@ module.exports = {
         background: path.join(__dirname, 'src', 'app', 'scripts', 'background.ts'),
         sidebar: path.join(__dirname, 'src', 'app', 'scripts', 'sidebar.ts'),
         content: path.join(__dirname, 'src', 'app', 'scripts', 'content.ts'),
+        'content_youtube': path.join(__dirname, 'src', 'app', 'scripts', 'content_youtube.ts'),
     },
     // ビルド前の検証
     infrastructureLogging: {
