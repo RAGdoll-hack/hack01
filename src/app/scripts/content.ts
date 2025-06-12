@@ -460,6 +460,7 @@ function createCheckButton(postButton: HTMLElement): HTMLElement {
             const composingTweet = await getComposingTweetData();
             console.log("取得した投稿中データ:", composingTweet);
 
+            // TODO: バックグラウンドにデータを送信しAIに解析
             chrome.runtime.sendMessage({ type: "ADD_WARNING", data: composingTweet });
         });
 
@@ -497,13 +498,30 @@ async function getComposingTweetData(): Promise<TweetData | null> {
 
         const text = tweetBox.innerText.trim();
 
-        // 添付画像の取得
+        // 添付画像（blob:）を取得し、Base64化
         const imageTags = document.querySelectorAll('img');
-        const images: string[] = Array.from(imageTags)
-            .map(img => img.getAttribute("src"))
-            .filter((src): src is string => !!src && src.startsWith("data:image/"));
+        const images: string[] = await Promise.all(
+            Array.from(imageTags)
+                .map(img => img.getAttribute("src"))
+                .filter((src): src is string => !!src && src.startsWith("blob:"))
+                .map(async (blobUrl) => {
+                    try {
+                        const res = await fetch(blobUrl);
+                        const blob = await res.blob();
+                        return await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string); // data:image/png;base64,...
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (e) {
+                        console.error("blob画像の取得に失敗:", e);
+                        return '';
+                    }
+                })
+        );
 
-        // 添付動画の取得（videoタグまたはcanvas経由）
+        // 添付動画の取得
         let videoUrl: string | null = null;
         const videoTag = document.querySelector("video");
         if (videoTag?.src?.startsWith("blob:")) {
@@ -512,11 +530,11 @@ async function getComposingTweetData(): Promise<TweetData | null> {
 
         const tweetData: TweetData = {
             type: "tweet",
-            user: null, // 必要なら localStorage やプロフィール欄から取得可能
+            user: null,
             text: text || null,
             datetime: new Date().toISOString(),
             url: null,
-            images,
+            images: images.filter(b64 => !!b64),  // 空文字を除去
             video: videoUrl
         };
 

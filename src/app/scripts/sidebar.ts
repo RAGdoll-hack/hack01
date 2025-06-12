@@ -92,7 +92,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const warning = createWarningElement(
             "高",
             ["不適切な内容"],
-            tweetData?.text ?? "(内容取得失敗)",
+            tweetData?.text ?? "",
             new Date()
         );
 
