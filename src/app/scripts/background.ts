@@ -35,7 +35,12 @@ interface UpdateSettingsMessage {
     settings: Settings;
 }
 
-type Message = GetSettingsMessage | UpdateSettingsMessage;
+interface GetOEmbedMessage {
+    type: 'GET_OEMBED';
+    url: string;
+}
+
+type Message = GetSettingsMessage | UpdateSettingsMessage | GetOEmbedMessage;
 
 // レスポンスの型定義
 interface SettingsResponse {
@@ -44,6 +49,10 @@ interface SettingsResponse {
 
 interface UpdateResponse {
     success: boolean;
+}
+
+interface OEmbedResponse {
+    videoUrl: string | null;
 }
 
 // サイドパネルの設定
@@ -111,6 +120,40 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
         chrome.storage.local.set({settings: message.settings}, () => {
             sendResponse({success: true});
         });
+        return true; // 非同期レスポンスを示すためにtrueを返す
+    }
+
+    if (message.type === 'GET_OEMBED') {
+        // oEmbedデータを取得して動画URLを抽出
+        (async () => {
+            let response: OEmbedResponse = {videoUrl: null};
+            try {
+                const res = await fetch(
+                    `https://publish.twitter.com/oembed?url=${encodeURIComponent(
+                        message.url
+                    )}`
+                );
+                const json = await res.json();
+                const match = json.html.match(
+                    /https:\/\/pic\.twitter\.com\/([a-zA-Z0-9]+)/
+                );
+                if (match) {
+                    response.videoUrl = `https://pic.twitter.com/${match[1]}`;
+                } else if (message.url) {
+                    // Twitter/XのURLかチェック
+                    const twitterMatch = message.url.match(/https?:\/\/(twitter|x)\.com\/([^\/]+)\/status\/(\d+)/);
+                    if (twitterMatch) {
+                        const username = twitterMatch[2];
+                        const statusId = twitterMatch[3];
+                        response.videoUrl = `https://fxtwitter.com/${username}/status/${statusId}.mp4`;
+                    }
+                }
+            } catch (err) {
+                console.error("oEmbed取得に失敗しました:", err);
+            } finally {
+                sendResponse(response);
+            }
+        })();
         return true; // 非同期レスポンスを示すためにtrueを返す
     }
 });
