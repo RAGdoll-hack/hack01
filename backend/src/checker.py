@@ -1,5 +1,6 @@
 import whisper
-import google.generativeai as genai
+import google.generativeai as genaikey
+from google import genai
 import openai 
 import os
 import json 
@@ -9,106 +10,20 @@ from dotenv import load_dotenv
 # from acrcloud.recognizer import ACRCloudRecognizer, ACRCloudStatusCode 
 # from .agent.graph import graph as research_agent_graph
 from agent.graph import graph as research_agent_graph
+import time
 
 # .envファイルから環境変数をロード
 load_dotenv()
 
 # Gemini APIの設定
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genaikey.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # OpenAI APIの設定
 openai.api_key = os.getenv("OPENAI_API_KEY")
 print(f"DEBUG: OpenAI APIキーが設定されていますか: {'はい' if openai.api_key else 'いいえ'}")
 print(f"DEBUG: APIキーの先頭部分: {openai.api_key[:8] if openai.api_key else '未設定'}")
 
-video_path = "backend/data/videos/test_video.mp4"
-# # --- 動画からの文字起こし（Gemini API使用） ---
-# def process_video_to_transcript_gemini(video_path: str) -> dict:
-#     """
-#     動画ファイルをGoogleのGemini APIでタイムスタンプ付きの文字起こしを生成する。
-
-#     Args:
-#         video_path (str): 動画ファイルのパス。
-
-#     Returns:
-#         dict: {
-#             'segments': list[dict] - タイムスタンプ付きのセグメントデータ
-#             'full_text': str - 会話全体の文字列
-#         }
-#     """
-#     if not os.path.exists(video_path):
-#         raise FileNotFoundError(f"動画ファイルが見つかりません: {video_path}")
-
-#     print(f"DEBUG: Gemini APIで動画 '{video_path}' から文字起こしを生成します。")
-
-#     try:
-#         # Gemini APIの設定
-#         model = genai.GenerativeModel('gemini-pro-vision')
-        
-#         # 動画ファイルを読み込む
-#         with open(video_path, "rb") as video_file:
-#             video_data = video_file.read()
-        
-#         # プロンプトの設定
-#         prompt = """
-#         この動画の音声を文字起こししてください。
-#         以下の形式でJSONを出力してください：
-#         {
-#             "segments": [
-#                 {
-#                     "start": 開始時間（秒）,
-#                     "end": 終了時間（秒）,
-#                     "text": "文字起こしテキスト"
-#                 }
-#             ]
-#         }
-#         時間は秒単位で、小数点以下2桁まで指定してください。
-#         """
-
-#         # Gemini APIで文字起こしを実行
-#         response = model.generate_content([prompt, video_data])
-#         response_text = response.text.strip()
-        
-#         # JSONレスポンスをパース
-#         transcript_data = json.loads(response_text)
-        
-#         # 結果を整形
-#         formatted_segments = []
-#         full_text = ""
-        
-#         for segment in transcript_data['segments']:
-#             formatted_segments.append({
-#                 'start': segment['start'],
-#                 'end': segment['end'],
-#                 'text': segment['text'].strip(),
-#                 'words': []  # Gemini APIでは単語レベルのタイムスタンプは取得できない
-#             })
-#             full_text += segment['text'].strip() + " "
-        
-#         full_text = full_text.strip()
-        
-#         print(f"DEBUG: Gemini APIによる文字起こしが完了しました。")
-#         print(f"  検出されたセグメント数: {len(formatted_segments)}")
-#         print(f"  全体の文字数: {len(full_text)}")
-        
-#         # デバッグ用に最初のセグメントの詳細を表示
-#         if formatted_segments:
-#             print(f"DEBUG: 最初のセグメントの詳細:")
-#             print(f"  テキスト: {formatted_segments[0]['text']}")
-#             print(f"  時間: {formatted_segments[0]['start']:.2f} - {formatted_segments[0]['end']:.2f}")
-        
-#         return {
-#             'segments': formatted_segments,
-#             'full_text': full_text
-#         }
-
-#     except Exception as e:
-#         print(f"ERROR: Gemini APIによる文字起こし中にエラーが発生しました: {e}")
-#         return {
-#             'segments': [],
-#             'full_text': ""
-#         }
-# # print(process_video_to_transcript_gemini(video_path))
+video_path = "hack01/backend/data/videos/test_video.mp4"
 
 # --- 動画からの文字起こし ---
 def process_video_to_transcript(video_path: str) -> dict:
@@ -136,25 +51,19 @@ def process_video_to_transcript(video_path: str) -> dict:
         # OpenAIのWhisper APIを使用して文字起こし
         with open(video_path, "rb") as video_file:
             transcript = client.audio.transcriptions.create(
-                model="gpt-4o-transcribe",
+                model="whisper-1",  # モデル名を修正
                 file=video_file,
-                response_format="json",
-                language="ja"
+                response_format="verbose_json",  # レスポンスフォーマットを変更
+                language="ja",
+                timestamp_granularities=["segment", "word"]  # タイムスタンプの粒度を指定
             )
 
         # 結果を整形
         formatted_segments = []
-        full_text = transcript.text if hasattr(transcript, 'text') else ""
+        full_text = ""
 
-        # セグメント情報がない場合は、全体を1つのセグメントとして扱う
-        if not hasattr(transcript, 'segments'):
-            formatted_segments.append({
-                'start': 0.0,
-                'end': 0.0,  # 正確な時間は不明
-                'text': full_text,
-                'words': []
-            })
-        else:
+        # セグメント情報の処理
+        if hasattr(transcript, 'segments'):
             for segment in transcript.segments:
                 words_with_timestamps = []
                 if hasattr(segment, 'words'):
@@ -172,16 +81,28 @@ def process_video_to_transcript(video_path: str) -> dict:
                     'text': segment_text,
                     'words': words_with_timestamps
                 })
+                full_text += segment_text + " "
+        else:
+            # セグメント情報がない場合は、全体を1つのセグメントとして扱う
+            formatted_segments.append({
+                'start': 0.0,
+                'end': 0.0,
+                'text': transcript.text if hasattr(transcript, 'text') else "",
+                'words': []
+            })
+            full_text = transcript.text if hasattr(transcript, 'text') else ""
+        
+        full_text = full_text.strip()
         
         print(f"DEBUG: 文字起こしが完了しました。")
         print(f"  全体の文字数: {len(full_text)}")
+        print(f"  セグメント数: {len(formatted_segments)}")
         
         # デバッグ用に最初のセグメントの詳細を表示
         if formatted_segments:
             print(f"DEBUG: 最初のセグメントの詳細:")
             print(f"  テキスト: {formatted_segments[0]['text']}")
-            if formatted_segments[0]['start'] != 0.0 or formatted_segments[0]['end'] != 0.0:
-                print(f"  時間: {formatted_segments[0]['start']:.2f} - {formatted_segments[0]['end']:.2f}")
+            print(f"  時間: {formatted_segments[0]['start']:.2f} - {formatted_segments[0]['end']:.2f}")
             if formatted_segments[0]['words']:
                 print("  単語レベルのタイムスタンプ:")
                 for word in formatted_segments[0]['words']:
@@ -198,9 +119,8 @@ def process_video_to_transcript(video_path: str) -> dict:
             'segments': [],
             'full_text': ""
         }
-print(process_video_to_transcript(video_path))
-
 # print(process_video_to_transcript(video_path))
+
 # --- プレーンテキスト抽出 ---
 def extract_plain_text(transcripts: list[dict]) -> str:
     """
@@ -219,75 +139,16 @@ def extract_plain_text(transcripts: list[dict]) -> str:
     plain_text = " ".join([segment['text'] for segment in transcripts])
     return plain_text
 
-# # --- 3. Geminiによる深掘り分析 ---
-# def analyze_with_gemini_deep_research(text: str) -> dict:
-#     """
-#     Geminiを利用してテキスト内容を深掘りし、コンプライアンス関連情報を抽出する。
-
-#     Args:
-#         text (str): 文字起こしされたテキスト。
-
-#     Returns:
-#         dict: 深掘りされた分析結果。事故の種類、内容、関係者、潜在的なリスクなど。
-#     """
-#     api_key = os.getenv("GOOGLE_API_KEY")
-#     if not api_key:
-#         raise ValueError("GOOGLE_API_KEY 環境変数が設定されていません。Gemini APIを利用できません。")
-
-#     genai.configure(api_key=api_key)
-#     model = genai.GenerativeModel('gemini-pro')
-
-#     print(f"DEBUG: Geminiで以下のテキストを深掘り分析します:\n'{text[:200]}...'")
-
-#     prompt = f"""
-#     以下の会議録テキストを分析し、**コンプライアンス違反の可能性がある箇所や、
-#     **組織にとってのリスク**につながる可能性のある情報（例：不適切発言、情報漏洩示唆、不正行為の兆候など）を深掘りしてください。
-    
-#     分析結果は、以下のJSON形式で出力してください。
-
-#     {{
-#         "potential_issue": "検出された主な問題点やリスクの概要 (例: 不適切発言による情報漏洩リスク)",
-#         "incident_category": "関連するコンプライアンス分野 (例: 情報セキュリティ, ハラスメント, 財務報告, 贈収賄, 労働法など)",
-#         "keywords": ["関連するキーワード1", "関連するキーワード2", ...],
-#         "gemini_summary": "検出された問題点の具体的な内容と、その背景、潜在的な影響の要約",
-#         "gemini_risk_assessment": "Geminiによるリスク評価 ('低', '中', '高' のいずれか)",
-#         "relevant_text_snippet": "問題がある可能性のある原文の一部 (最大200文字程度)"
-#     }}
-
-#     会議録テキスト:
-#     {text}
-#     """
-
-#     try:
-#         response = model.generate_content(prompt)
-#         response_text = response.text.strip()
-#         analysis_result = json.loads(response_text)
-        
-#         print(f"DEBUG: Geminiによる分析が完了しました。リスク評価: {analysis_result.get('gemini_risk_assessment')}")
-#         return analysis_result
-
-#     except Exception as e:
-#         print(f"ERROR: Geminiによる深掘り分析中にエラーが発生しました: {e}")
-#         print(f"DEBUG: Geminiの生レスポンス (エラー時): {response.text if 'response' in locals() else 'N/A'}")
-#         return {
-#             'potential_issue': '分析エラーまたは関連情報なし',
-#             'incident_category': '不明',
-#             'keywords': [],
-#             'gemini_summary': 'Geminiによる分析中にエラーが発生しました。',
-#             'gemini_risk_assessment': '不明',
-#             'relevant_text_snippet': text[:200]
-#         }
-
-# --- 3. Geminiによる深掘り分析 (LangGraph エージェントの呼び出しに置き換え) ---
+# --- 3. Gemini Deep Researchによる背景傾向調査 ---
 def analyze_with_gemini_deep_research(speaker_info: dict = None) -> dict:
     """
-    LangGraph エージェントを用いてテキスト内容を深掘りし、コンプライアンス関連情報を抽出する。
+    LangGraph エージェントを用いてテキスト内容を深掘りし、発言者の過去の情報を取得する。
     発言者情報があれば、エージェントがツールを用いて過去情報を検索し、分析に含める。
 
     Args:
         text (str): 文字起こしされたテキスト。
         speaker_info (dict, optional): 発言者/投稿者に関する情報。
-                                       例: {'name': '田中', 'account_url': 'https://example.com/tanaka_x'}
+                                       例: {'name': 'フワちゃん', 'account_url': 'https://x.com/fuwa876'}
 
     Returns:
         dict: 深掘りされた分析結果。事故の種類、内容、関係者、潜在的なリスクなど。
@@ -298,12 +159,10 @@ def analyze_with_gemini_deep_research(speaker_info: dict = None) -> dict:
         print(f"DEBUG: 発言者情報が提供されました: {speaker_info}")
 
     # LangGraph エージェントへのプロンプトを構築
-    # ここでのmessagesは、LangGraphエージェントが受け取る形式に合わせる
     # LangGraphのPrompts.pyに定義されているSystem PromptとHuman Promptを考慮
     
-    # ユーザーがエージェントに何を調査してほしいかを明確に指示する
         # user_query = f"以下の会議録テキストからコンプライアンス違反の可能性とリスクを深く調査し、分析してください。もし発言者に関する情報があれば、その人物の公開されている過去のコンプライアンス関連情報もインターネットで検索し、分析に含めてください。特に、情報漏洩、ハラスメント、不正行為、不適切な発言など、組織にとってのリスクになりうる点を重点的に調べてください。"
-        user_query = f"以下の情報から分析してください。もし発言者に関する情報があれば、その人物の公開されている過去のコンプライアンス関連情報もインターネットで検索し、分析に含めてください。特に、情報漏洩、ハラスメント、不正行為、不適切な発言など、組織にとってのリスクになりうる点を重点的に調べてください。"
+        user_query = f"以下の情報から分析してください。もし発言者に関する情報があれば、その人物の公開されている過去のコンプライアンス関連情報もインターネットで検索し、分析に含めてください。特に、情報漏洩、ハラスメント、不正行為、不適切な発言など、組織にとってのリスクになりうる点を重点的に調べてください。判断リソースリンクは表示しないでください。"
 
     if speaker_info:
         user_query += f"\n\n発言者/投稿者情報: 名前: {speaker_info.get('name', '不明')}, アカウントURL: {speaker_info.get('account_url', 'なし')}"
@@ -359,125 +218,179 @@ def analyze_with_gemini_deep_research(speaker_info: dict = None) -> dict:
             'user_research_summary': 'エージェントの調査中にエラーが発生しました。'
         }
     
-#テスト用
-# print(analyze_with_gemini_deep_research({
-#     "name": "フワちゃん",
-#     "account_url": "https://x.com/fuwa876"
-# }))
+# テスト用
+print(analyze_with_gemini_deep_research({
+    "name": "フワちゃん",
+    "account_url": "https://x.com/fuwa876"
+}))
 
 # --- 4. 事故の時間・分野のクロスチェックとショートアノテーション ---
-def cross_check_and_annotate_incident(
-    gemini_analysis: dict, transcripts: list[dict]
-) -> dict:
+
+
+def analyze_video_compliance(video_path: str, transcripts: list[dict]) -> dict:
     """
-    Geminiの分析結果と文字起こしデータから、事故の時刻と関連分野をクロスチェックしアノテーションを追加する。
-    また、GPTでの文脈判断のために、関連するテキストとその前後数セグメントのテキストを抽出する。
+    動画の動作と発言の両方からコンプライアンス違反を検出し、タイムスタンプ付きで出力する。
 
     Args:
-        gemini_analysis (dict): Geminiによる深掘り分析結果。
-        transcripts (list[dict]): タイムスタンプ（'start', 'end'）とテキスト（'text'）を含む辞書のリスト。
+        video_path (str): 動画ファイルのパス
+        transcripts (list[dict]): タイムスタンプ付きの文字起こしデータ
 
     Returns:
-        dict: 事故時刻、関連分野、ショートアノテーション、
-              そしてGPTに渡すための関連コンテキストテキストを含む辞書。
+        dict: コンプライアンス違反の検出結果
     """
-    print(f"DEBUG: 事故時刻と分野をクロスチェックし、GPT用コンテキストを準備します。")
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"動画ファイルが見つかりません: {video_path}")
 
-    incident_timestamp_approx = "N/A"
-    relevant_field = gemini_analysis.get('incident_category', '不明')
-    short_annotation = gemini_analysis.get('gemini_summary', '詳細不明なコンプライアンス関連事象')
-    context_for_gpt = ""
+    print(f"DEBUG: 動画 '{video_path}' のコンプライアンス分析を開始します。")
 
-    analysis_keywords = gemini_analysis.get('keywords', [])
-    relevant_snippet = gemini_analysis.get('relevant_text_snippet', '')
+    try:
+        # Gemini APIの設定
+        # model = genai.GenerativeModel('gemini-pro-vision')
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        model_name = "gemini-2.5-flash-preview-05-20"
+        # 動画ファイルの存在とサイズを確認
+        file_size = os.path.getsize(video_path)
+        print(f"DEBUG: 動画ファイルサイズ: {file_size / (1024*1024):.2f} MB")
+        
+        if file_size == 0:
+            raise ValueError("動画ファイルが空です")
+        
+        # 文字起こしデータの確認
+        if not transcripts:
+            raise ValueError("文字起こしデータが空です")
+        
+        print(f"DEBUG: 文字起こしデータのセグメント数: {len(transcripts)}")
+        
+        # 文字起こしデータを整形
+        transcript_text = "\n".join([
+            f"[{segment['start']:.2f}-{segment['end']:.2f}] {segment['text']}"
+            for segment in transcripts
+        ])
+        
+        print(f"DEBUG: 文字起こしテキストの長さ: {len(transcript_text)} 文字")
 
-    best_match_segment_index = -1
-    max_match_len = 0
+        # プロンプトの設定
+        prompt = f"""
+        以下の動画と文字起こしデータを分析し、コンプライアンス違反の可能性がある箇所を特定してください。
 
-    # `transcripts`がダミー（テキスト入力のみの場合）ではないか確認
-    # text_inputのみの場合、transcriptsは [{'start': 0.0, 'end': 0.0, 'text': text_input}] のダミーが想定される
-    is_dummy_transcript = (len(transcripts) == 1 and 
-                           transcripts[0].get('start') == 0.0 and 
-                           transcripts[0].get('end') == 0.0 and
-                           len(transcripts[0].get('text', '')) > 0) # テキストが空でないことを確認
+        文字起こしデータ:
+        {transcript_text}
 
-    if is_dummy_transcript:
-        # テキスト入力のみの場合、全体のテキストがコンテキスト
-        context_for_gpt = transcripts[0].get('text', '')
-        incident_timestamp_approx = "不明" 
-        if relevant_snippet:
-            short_annotation = f"関連テキスト: '{relevant_snippet}'"
-        else:
-            short_annotation = gemini_analysis.get('gemini_summary', short_annotation)
-    else:
-        # 動画からの文字起こしの場合（実際のタイムスタンプがある場合）
-        for i, segment in enumerate(transcripts):
-            segment_text = segment['text']
-            # relevant_snippet が segment_text 内に含まれるか
-            if relevant_snippet and relevant_snippet in segment_text:
-                if len(relevant_snippet) > max_match_len:
-                    max_match_len = len(relevant_snippet)
-                    best_match_segment_index = i
-            else:
-                # キーワードに基づいて一致を試みる
-                matched_keywords_count = sum(1 for kw in analysis_keywords if kw in segment_text)
-                if matched_keywords_count > 0:
-                    # 既存のベストマッチよりも多くのキーワードが一致するか、
-                    # まだベストマッチがない場合に更新
-                    if best_match_segment_index == -1 or \
-                       (best_match_segment_index != -1 and matched_keywords_count > sum(1 for kw in analysis_keywords if kw in transcripts[best_match_segment_index]['text'])):
-                        best_match_segment_index = i
+        以下の点について分析してください：
+        1. 動画内の不適切な動作（暴力、ハラスメント行為など）
+        2. 不適切な発言（差別的発言、ハラスメント発言など）
+        3. 各違反の具体的な時間帯
 
-        if best_match_segment_index != -1:
-            best_match_segment = transcripts[best_match_segment_index]
-            start_time = best_match_segment['start']
-            end_time = best_match_segment['end']
-            incident_timestamp_approx = f"{int(start_time // 60)}:{int(start_time % 60):02d} - {int(end_time // 60)}:{int(end_time % 60):02d}"
+        以下のJSON形式で出力してください：
+        {{
+            "violations": [
+                {{
+                    "type": "動作" or "発言",
+                    "description": "違反の具体的な説明",
+                    "start_time": 開始時間（秒）,
+                    "end_time": 終了時間（秒）,
+                    "severity": "高" or "中" or "低",
+                    "related_text": "関連する発言（発言タイプの場合）"
+                }}
+            ],
+            "summary": "全体的な分析結果の要約"
+        }}
+        """
+
+        print("DEBUG: Gemini APIで分析を開始します...")
+        
+        # 動画ファイルをアップロード
+        my_file = client.files.upload(file=video_path)
             
-            if relevant_snippet:
-                short_annotation = f"関連テキスト: '{relevant_snippet}'"
-            elif gemini_analysis.get('gemini_summary'):
-                short_annotation = gemini_analysis['gemini_summary']
+            # ファイルの処理が完了するまで待機
+        while my_file.state.name == "PROCESSING":
+            print("ビデオを処理中...", end="\r")
+            time.sleep(5)
+            my_file = client.files.get(name=my_file.name)
+        
+        # Gemini APIで分析を実行
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[prompt, my_file]
+        )
+        print(response)
+        print("DEBUG: Gemini APIからの応答を受信しました")
+        
+        # JSONレスポンスをパース
+        try:
+            # レスポンスからテキストコンテンツを抽出
+            response_text = response.candidates[0].content.parts[0].text
+            # JSON部分を抽出（```json と ``` の間のテキスト）
+            json_text = re.search(r'```json\n(.*?)\n```', response_text, re.DOTALL)
+            if json_text:
+                analysis_result = json.loads(json_text.group(1))
             else:
-                short_annotation = f"キーワード: {', '.join(analysis_keywords)} に基づく事象"
+                raise ValueError("JSONデータが見つかりませんでした")
+            print("DEBUG: JSONレスポンスのパースに成功しました")
+        except json.JSONDecodeError as e:
+            print(f"ERROR: JSONのパースに失敗しました: {e}")
+            print(f"受信したレスポンス: {response_text[:200]}...")  # 最初の200文字のみ表示
+            raise
 
-            context_window_segments = 3
-            start_index = max(0, best_match_segment_index - context_window_segments)
-            end_index = min(len(transcripts), best_match_segment_index + context_window_segments + 1)
+        # 結果を整形して返す
+        return {
+            'violations': analysis_result.get('violations', []),
+            'summary': analysis_result.get('summary', '分析結果なし'),
+            'raw_response': response  # デバッグ用
+        }
 
-            context_segments = transcripts[start_index:end_index]
-            context_for_gpt = "\n".join([f"({s['start']:.2f}-{s['end']:.2f}) {s['text'].strip()}" for s in context_segments])
-            
-            print(f"DEBUG: GPT用コンテキストを生成しました (長さ: {len(context_for_gpt)}文字)")
-        else:
-            # タイムスタンプ付き文字起こしだが、関連するセグメントが見つからなかった場合
-            context_for_gpt = extract_plain_text(transcripts) # 全体を渡す
-            incident_timestamp_approx = "N/A (関連セグメントなし)"
+    except Exception as e:
+        print(f"ERROR: コンプライアンス分析中にエラーが発生しました: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'violations': [],
+            'summary': f"エラーが発生しました: {str(e)}",
+            'raw_response': None
+        }
 
 
-    return {
-        'incident_timestamp_approx': incident_timestamp_approx,
-        'relevant_field': relevant_field,
-        'short_annotation': short_annotation,
-        'context_for_gpt': context_for_gpt 
-    }
+
 
 # --- 5. GPTによる前後の文脈判断 ---
 def judge_context_with_gpt(
-    context_text: str,          # 全テキストではなく、関連する文脈テキストを受け取る
-    incident_timestamp_approx: str,
-    relevant_field: str
+    full_transcript: str,          # 文字起こしの全文
+    violation_record: dict,        # analyze_video_complianceからの違反レコード
+    speaker_background: dict = None  # 発言者の背景情報（オプション）
 ) -> dict:
     """
     GPTを利用して、特定された発言の前後の文脈を判断し、意図やニュアンスを評価する。
+    発言者の背景情報も考慮して、コンプライアンス違反の可能性を総合的に判断する。
 
     Args:
-        context_text (str): 問題のある発言を含む、関連する前後の文脈テキスト。
-        incident_timestamp_approx (str): 事故のおおよそのタイムスタンプ範囲。
-        relevant_field (str): 関連する分野。
+        full_transcript (str): 文字起こしの全文。
+        violation_record (dict): analyze_video_complianceからの違反レコード。
+            {
+                'type': str,              # 違反の種類（"動作" or "発言"）
+                'description': str,       # 違反の具体的な説明
+                'start_time': float,      # 開始時間（秒）
+                'end_time': float,        # 終了時間（秒）
+                'severity': str,          # 重要度（"高" or "中" or "低"）
+                'related_text': str       # 関連する発言（発言タイプの場合）
+            }
+        speaker_background (dict, optional): 発言者の背景情報。
+            {
+                'name': str,                     # 発言者名
+                'past_incidents': list,          # 過去のコンプライアンス関連事案
+                'character_type': str,           # キャラクタータイプ（例：お笑い芸人、政治家など）
+                'usual_style': str               # 通常の発言スタイル
+            }
 
     Returns:
         dict: 文脈判断の結果。意図、ニュアンス、追加のリスク評価など。
+            {
+                'contextual_intent': str,        # 発言の意図とニュアンスの具体的な説明
+                'gpt_context_assessment': str,   # 文脈を踏まえた上でのコンプライアンスリスクへの影響評価
+                'gpt_additional_risk_factor': str, # 文脈から判断される追加のリスク要因または軽減要因
+                'gpt_risk_modifier': str,        # 最終的なリスク修正の度合い ('増幅', '軽減', 'なし' のいずれか)
+                'speaker_context_impact': str,   # 発言者の背景情報がリスク評価に与える影響
+                'final_judgment': str            # 発言者の背景を考慮した上での最終判断
+            }
     """
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -485,34 +398,65 @@ def judge_context_with_gpt(
 
     openai.api_key = api_key
 
-    print(f"DEBUG: GPTで文脈を判断します。対象タイムスタンプ: {incident_timestamp_approx}, 分野: {relevant_field}")
-    print(f"DEBUG: 分析対象のコンテキストテキスト:\n'{context_text[:200]}...'")
+    # タイムスタンプを分:秒形式に変換
+    start_time = violation_record.get('start_time', 0)
+    end_time = violation_record.get('end_time', 0)
+    incident_timestamp = f"{int(start_time // 60)}:{int(start_time % 60):02d} - {int(end_time // 60)}:{int(end_time % 60):02d}"
+
+    print(f"DEBUG: GPTで文脈を判断します。")
+    print(f"対象タイムスタンプ: {incident_timestamp}")
+    print(f"違反タイプ: {violation_record.get('type', '不明')}")
+    print(f"重要度: {violation_record.get('severity', '不明')}")
+
+    # 発言者の背景情報を文字列に変換
+    speaker_info = ""
+    if speaker_background:
+        speaker_info = f"""
+        発言者: {speaker_background.get('name', '不明')}
+        キャラクタータイプ: {speaker_background.get('character_type', '不明')}
+        通常の発言スタイル: {speaker_background.get('usual_style', '不明')}
+        過去のコンプライアンス関連事案: {', '.join(speaker_background.get('past_incidents', ['なし']))}
+        """
 
     prompt = f"""
-    以下のテキストは、会議録の一部で、タイムスタンプ'{incident_timestamp_approx}'付近に'{relevant_field}'に関する潜在的な問題発言が含まれている可能性があります。
+    以下の情報を分析し、コンプライアンス違反の可能性を判断してください。
 
-    このテキストを分析し、問題とされている発言の**意図（皮肉、冗談、真剣さ、質問、事実報告など）**を判断してください。
-    
-    また、その発言がコンプライアンス違反の可能性をどの程度高めるか、または軽減するかを評価し、文脈から判断される追加のリスク要因や軽減要因があれば指摘してください。
+    1. 問題の発言:
+    タイムスタンプ: {incident_timestamp}
+    違反タイプ: {violation_record.get('type', '不明')}
+    重要度: {violation_record.get('severity', '不明')}
+    説明: {violation_record.get('description', '不明')}
+    関連テキスト: {violation_record.get('related_text', '不明')}
 
-    分析結果は、以下のJSON形式で出力してください。
+    2. 発言者の背景情報:
+    {speaker_info if speaker_info else "発言者の背景情報は提供されていません。"}
+
+    3. 会議録の全文:
+    {full_transcript}
+
+    以下の点について分析してください：
+    1. 発言の意図（皮肉、冗談、真剣な情報伝達など）
+    2. 発言者のキャラクターや過去の発言スタイルを考慮した場合の許容可能性
+    3. 前後の文脈から判断される発言の真意
+    4. コンプライアンス違反の可能性（発言者の背景を考慮しても許容できないか）
+
+    分析結果は、以下のJSON形式で出力してください：
 
     {{
-        "contextual_intent": "発言の意図とニュアンスの具体的な説明 (例: 真剣な情報伝達、皮肉めいた発言、軽い冗談など)",
-        "gpt_context_assessment": "文脈を踏まえた上でのコンプライアンスリスクへの影響評価 (例: リスクを増幅させる、リスクを軽減する、影響なしなど)",
-        "gpt_additional_risk_factor": "文脈から判断される追加のリスク要因（例: 隠蔽の意図、繰り返し発言など）または軽減要因（例: 直後に謝罪があった、誤解と判明したなど） (該当しない場合は 'なし')",
-        "gpt_risk_modifier": "最終的なリスク修正の度合い ('増幅', '軽減', 'なし' のいずれか)"
+        "contextual_intent": "発言の意図とニュアンスの具体的な説明",
+        "gpt_context_assessment": "文脈を踏まえた上でのコンプライアンスリスクへの影響評価",
+        "gpt_additional_risk_factor": "文脈から判断される追加のリスク要因または軽減要因",
+        "gpt_risk_modifier": "最終的なリスク修正の度合い ('増幅', '軽減', 'なし' のいずれか)",
+        "speaker_context_impact": "発言者の背景情報がリスク評価に与える影響",
+        "final_judgment": "発言者の背景を考慮した上での最終判断"
     }}
-
-    関連するコンテキストテキスト:
-    {context_text}
     """
 
     try:
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "あなたは会議録からコンプライアンスリスクを評価する専門家です。提供された文脈に基づいて、発言の意図を正確に判断してください。"},
+                {"role": "system", "content": "あなたは会議録からコンプライアンスリスクを評価する専門家です。発言者の背景や文脈を考慮して、発言の意図を正確に判断してください。ただし、貴方が大丈夫と通してしまうと、全世界に発信される可能性があるので、貴方の判断は慎重に行ってください。"},
                 {"role": "user", "content": prompt}
             ],
             response_format={ "type": "json_object" }
@@ -521,7 +465,10 @@ def judge_context_with_gpt(
         response_content = response.choices[0].message.content
         context_judgement_result = json.loads(response_content)
         
-        print(f"DEBUG: GPTによる文脈判断が完了しました。意図: {context_judgement_result.get('contextual_intent')}")
+        print(f"DEBUG: GPTによる文脈判断が完了しました。")
+        print(f"意図: {context_judgement_result.get('contextual_intent')}")
+        print(f"リスク修正: {context_judgement_result.get('gpt_risk_modifier')}")
+        
         return context_judgement_result
 
     except openai.APIError as e:
@@ -530,7 +477,9 @@ def judge_context_with_gpt(
             'contextual_intent': 'APIエラーにより判断不能',
             'gpt_context_assessment': '不明',
             'gpt_additional_risk_factor': 'なし',
-            'gpt_risk_modifier': 'なし'
+            'gpt_risk_modifier': 'なし',
+            'speaker_context_impact': '不明',
+            'final_judgment': 'APIエラーにより判断不能'
         }
     except json.JSONDecodeError as e:
         print(f"ERROR: GPTからのレスポンスが有効なJSONではありません: {e}")
@@ -539,7 +488,9 @@ def judge_context_with_gpt(
             'contextual_intent': 'JSONパースエラーにより判断不能',
             'gpt_context_assessment': '不明',
             'gpt_additional_risk_factor': 'なし',
-            'gpt_risk_modifier': 'なし'
+            'gpt_risk_modifier': 'なし',
+            'speaker_context_impact': '不明',
+            'final_judgment': 'JSONエラーにより判断不能'
         }
     except Exception as e:
         print(f"ERROR: GPTによる文脈判断中に予期せぬエラーが発生しました: {e}")
@@ -547,7 +498,9 @@ def judge_context_with_gpt(
             'contextual_intent': '予期せぬエラーにより判断不能',
             'gpt_context_assessment': '不明',
             'gpt_additional_risk_factor': 'なし',
-            'gpt_risk_modifier': 'なし'
+            'gpt_risk_modifier': 'なし',
+            'speaker_context_impact': '不明',
+            'final_judgment': '予期せぬエラーにより判断不能'
         }
 
 # --- 6. 音声抽出ヘルパー関数 ---
@@ -960,27 +913,144 @@ def run_compliance_agent(text_input: str = None, video_path: str = None) -> dict
             'music_detection_result': music_detection_result
         }
 
-    elif text_input:
-        print(f"DEBUG: テキスト入力のみで処理を開始します。")
-        plain_text = text_input
-        dummy_transcripts_for_text = [{"start": 0.0, "end": 0.0, "text": text_input}]
-        gemini_analysis = analyze_with_gemini_deep_research(plain_text)
-        incident_details = cross_check_and_annotate_incident(gemini_analysis, dummy_transcripts_for_text)
-        gpt_context_judgement = judge_context_with_gpt(
-            incident_details.get('context_for_gpt', plain_text),
-            incident_details.get('incident_timestamp_approx', ''),
-            incident_details.get('relevant_field', '')
-        )
-        text_alert_data = {
-            'gemini_analysis': gemini_analysis,
-            'incident_details': incident_details,
-            'gpt_context_judgement': gpt_context_judgement,
-            'transcripts': dummy_transcripts_for_text,
-            'music_detection_result': None # テキスト入力の場合は音楽検出なし
-        }
-    else:
-        raise ValueError("テキスト入力または動画パスのいずれかを指定してください。")
+# # テスト用のコード
+# if __name__ == "__main__":
+#     try:
+#         print("\n=== テスト開始 ===")
+#         print(f"現在の作業ディレクトリ: {os.getcwd()}")
+#         print(f"動画ファイルパス: {video_path}")
+#         print(f"動画ファイルの存在確認: {'存在します' if os.path.exists(video_path) else '存在しません'}")
+        
+#         if os.path.exists(video_path):
+#             print(f"動画ファイルサイズ: {os.path.getsize(video_path) / (1024*1024):.2f} MB")
+        
+#         # 1. 文字起こしを実行
+#         print("\n=== 文字起こしの実行 ===")
+#         transcript_result = process_video_to_transcript(video_path)
+        
+#         # 文字起こし結果の確認
+#         print("\n=== 文字起こし結果の確認 ===")
+#         print(f"セグメント数: {len(transcript_result['segments'])}")
+#         print(f"全体の文字数: {len(transcript_result['full_text'])}")
+        
+#         # 最初の3セグメントを表示
+#         print("\n最初の3セグメントの詳細:")
+#         for i, segment in enumerate(transcript_result['segments'][:3]):
+#             print(f"\nセグメント {i+1}:")
+#             print(f"時間: {segment['start']:.2f} - {segment['end']:.2f}")
+#             print(f"テキスト: {segment['text']}")
+#             if segment['words']:
+#                 print("単語レベルのタイムスタンプ:")
+#                 for word in segment['words'][:5]:  # 最初の5単語を表示
+#                     print(f"  {word['word']}: {word['start']:.2f} - {word['end']:.2f}")
+        
+#         # 2. コンプライアンス分析を実行
+#         print("\n=== コンプライアンス分析の実行 ===")
+#         compliance_result = analyze_video_compliance(video_path, transcript_result['segments'])
+#         print(compliance_result)
+#         # 分析結果の表示
+#         print("\n=== コンプライアンス分析結果 ===")
+#         print(f"要約: {compliance_result['summary']}")
+        
+#         violations = compliance_result.get('violations', [])
+#         print(f"\n検出された違反数: {len(violations)}")
+        
+#         for i, violation in enumerate(violations, 1):
+#             print(f"\n違反 {i}:")
+#             print(f"タイプ: {violation['type']}")
+#             print(f"説明: {violation['description']}")
+#             print(f"時間帯: {violation['start_time']:.2f} - {violation['end_time']:.2f}")
+#             print(f"重要度: {violation['severity']}")
+#             if violation.get('related_text'):
+#                 print(f"関連テキスト: {violation['related_text']}")
+        
+#     except Exception as e:
+#         print(f"\nERROR: テスト実行中にエラーが発生しました: {e}")
+#         import traceback
+#         traceback.print_exc()
 
-    # --- 最終的なアラートの統合 ---
-    final_alert = integrate_multi_source_alerts(video_alert_data, text_alert_data)
-    return final_alert
+# --- テスト用のコード ---
+#これまんま動画オンリーのテスト用(youtube)
+if __name__ == "__main__":
+    try:
+        print("\n=== テスト開始 ===")
+        print(f"現在の作業ディレクトリ: {os.getcwd()}")
+        print(f"動画ファイルパス: {video_path}")
+        print(f"動画ファイルの存在確認: {'存在します' if os.path.exists(video_path) else '存在しません'}")
+        
+        if os.path.exists(video_path):
+            print(f"動画ファイルサイズ: {os.path.getsize(video_path) / (1024*1024):.2f} MB")
+        
+        # 1. 文字起こしを実行
+        print("\n=== 文字起こしの実行 ===")
+        transcript_result = process_video_to_transcript(video_path)
+        
+        # 文字起こし結果の確認
+        print("\n=== 文字起こし結果の確認 ===")
+        print(f"セグメント数: {len(transcript_result['segments'])}")
+        print(f"全体の文字数: {len(transcript_result['full_text'])}")
+        
+        # 最初の3セグメントを表示
+        print("\n最初の3セグメントの詳細:")
+        for i, segment in enumerate(transcript_result['segments'][:3]):
+            print(f"\nセグメント {i+1}:")
+            print(f"時間: {segment['start']:.2f} - {segment['end']:.2f}")
+            print(f"テキスト: {segment['text']}")
+            if segment['words']:
+                print("単語レベルのタイムスタンプ:")
+                for word in segment['words'][:5]:  # 最初の5単語を表示
+                    print(f"  {word['word']}: {word['start']:.2f} - {word['end']:.2f}")
+        
+        # 2. コンプライアンス分析を実行
+        print("\n=== コンプライアンス分析の実行 ===")
+        compliance_result = analyze_video_compliance(video_path, transcript_result['segments'])
+        
+        # 分析結果の表示
+        print("\n=== コンプライアンス分析結果 ===")
+        print(f"要約: {compliance_result['summary']}")
+        
+        violations = compliance_result.get('violations', [])
+        print(f"\n検出された違反数: {len(violations)}")
+        
+        # 3. 各違反に対して文脈判断を実行
+        print("\n=== 文脈判断の実行 ===")
+        for i, violation in enumerate(violations, 1):
+            print(f"\n違反 {i}:")
+            print(f"タイプ: {violation['type']}")
+            print(f"説明: {violation['description']}")
+            print(f"時間帯: {violation['start_time']:.2f} - {violation['end_time']:.2f}")
+            print(f"重要度: {violation['severity']}")
+            if violation.get('related_text'):
+                print(f"関連テキスト: {violation['related_text']}")
+            
+            # 発言者の背景情報を設定（実際の使用では、この情報は別途取得する必要があります）
+            speaker_background = {
+                'name': '不明',
+                'past_incidents': [],
+                'character_type': '不明',
+                'usual_style': '不明'
+            }
+            
+            # 文脈判断を実行
+            print("\n文脈判断の実行:")
+            context_judgement = judge_context_with_gpt(
+                transcript_result['full_text'],
+                violation,
+                speaker_background
+            )
+            
+            # 文脈判断結果の表示
+            print("\n文脈判断結果:")
+            print(f"意図: {context_judgement.get('contextual_intent')}")
+            print(f"リスク評価: {context_judgement.get('gpt_context_assessment')}")
+            print(f"リスク修正: {context_judgement.get('gpt_risk_modifier')}")
+            print(f"発言者背景の影響: {context_judgement.get('speaker_context_impact')}")
+            print(f"最終判断: {context_judgement.get('final_judgment')}")
+            
+            # 区切り線を表示
+            print("\n" + "="*50)
+        
+    except Exception as e:
+        print(f"\nERROR: テスト実行中にエラーが発生しました: {e}")
+        import traceback
+        traceback.print_exc()
