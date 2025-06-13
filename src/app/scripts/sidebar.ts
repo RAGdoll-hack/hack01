@@ -47,7 +47,6 @@ function createWarningElement(dangerLevel: string, issues: string[], specificTex
     const warningDiv = document.createElement('div');
     warningDiv.classList.add('post-warning');
 
-    // 危険度に応じてCSSクラスを追加
     switch (dangerLevel) {
         case '高':
             warningDiv.classList.add('danger-high');
@@ -62,7 +61,6 @@ function createWarningElement(dangerLevel: string, issues: string[], specificTex
             warningDiv.classList.add('danger-unknown');
     }
 
-    // 危険度に応じて警告メッセージを変更
     let warningMessage = '';
     switch (dangerLevel) {
         case '高':
@@ -116,75 +114,90 @@ function setActiveView(viewName: 'settings' | 'empty'): void {
     }
 }
 
-// グローバルフラグでリスナーの重複を防ぐ
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // 従来の警告追加メッセージ
-    if (message.type === "ADD_WARNING") {
-        const tweetData = message.data;
+const handleAnalysisResult = (result: any) => {
+    const dangerLevel = result.analysis_result?.risk_level || "低";
+    const issues: string[] = [];
+    let specificText = "";
 
-        /*const warning = createWarningElement(
-            "高",
-            ["不適切な内容"],
-            tweetData?.text ?? "",
-            new Date()
-        );*/
+    if (result.status === "success" && result.analysis_result) {
+        if (result.analysis_result.violations?.length > 0) {
+            issues.push(...result.analysis_result.violations.map((v: any) => {
+                let issueText = `${v.type}: ${v.description}`;
+                if (v.severity) {
+                    issueText += ` (重要度: ${v.severity})`;
+                }
+                if (v.context_analysis) {
+                    issueText += `\n文脈分析: ${v.context_analysis}`;
+                }
+                return issueText;
+            }));
 
-        const container = document.getElementById('warningsContainer');
-        const settingsView = document.getElementById('settingsView');
-
-        if (container) {
-            container.prepend(warning);
-            requestAnimationFrame(() => {
-                warning.classList.add('show');
-                const isSettings = settingsView?.classList.contains('active');
-                setActiveView(isSettings ? 'settings' : 'empty');
-                sendResponse({success: true});
-            });
-        } else {
-            console.warn('warningsContainer が見つかりませんでした');
-            sendResponse({success: false});
+            if (result.analysis_result.violations[0].detected_text) {
+                specificText = result.analysis_result.violations[0].detected_text;
+            }
         }
 
+        if (result.analysis_result.recommendations?.length > 0) {
+            issues.push(...result.analysis_result.recommendations.map((r: string) => `推奨: ${r}`));
+        }
+
+        if (result.analysis_result.summary) {
+            issues.unshift(`要約: ${result.analysis_result.summary}`);
+        }
+    }
+
+    if (issues.length === 0) {
+        issues.push("問題は検出されませんでした");
+    }
+
+    const warning = createWarningElement(
+        dangerLevel,
+        issues,
+        specificText,
+        new Date()
+    );
+
+    const warningsContainer = document.getElementById('warningsContainer');
+    if (warningsContainer) {
+        warningsContainer.prepend(warning);
+        requestAnimationFrame(() => {
+            warning.classList.add('show');
+            setActiveView('empty');
+        });
+    }
+};
+
+// メッセージリスナー
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "ANALYSIS_RESULT") {
+        handleAnalysisResult(message.result);
+        sendResponse({ success: true });
         return true;
     }
 
-    // バックエンドからの分析結果を処理は別のリスナーで行うため削除
-
-    // エラー処理
     if (message.type === "ANALYSIS_ERROR") {
-        const tweetData = message.data;
-        const errorMsg = message.error;
-
-        console.error("分析エラーを受信:", errorMsg);
-
-        // エラー警告を作成
         const warning = createWarningElement(
             "不明",
-            [`エラー: ${errorMsg}`, "バックエンドサーバーに接続できないか、処理中にエラーが発生しました"],
-            tweetData?.text ?? "テキストなし",
+            ["バックエンドでの処理に失敗しました。"],
+            "動画ファイルの解析に失敗しました。",
             new Date()
         );
 
         const container = document.getElementById('warningsContainer');
-        const settingsView = document.getElementById('settingsView');
-
         if (container) {
             container.prepend(warning);
             requestAnimationFrame(() => {
                 warning.classList.add('show');
-                const isSettings = settingsView?.classList.contains('active');
-                setActiveView(isSettings ? 'settings' : 'empty');
+                setActiveView('empty');
                 sendResponse({ success: true });
             });
         } else {
-            console.warn('warningsContainer が見つかりませんでした');
             sendResponse({ success: false });
         }
 
         return true;
     }
 });
-
 
 document.addEventListener('DOMContentLoaded', () => {
     const enabledCheckbox = document.getElementById('enabled') as HTMLInputElement;
@@ -246,87 +259,38 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
     });
 
+    // 🔽 新しい警告追加時、動画ファイルをアップロードしてバックエンドへPOST
     if (addWarningButton && warningsContainer) {
         addWarningButton.addEventListener('click', async () => {
-            await openSidePanel();
-            chrome.runtime.sendMessage({ type: 'ADD_WARNING' }, (res) => {
-                if (!res?.success) {
-                    console.warn('警告の追加に失敗:', res?.error);
+            const videoInput = document.getElementById('videoUpload') as HTMLInputElement;
+            const file = videoInput?.files?.[0];
+
+            if (!file) {
+                alert("動画ファイルを選択してください。");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("video", file);
+
+            try {
+                const response = await fetch("http://localhost:5000/analyze-video", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.status === "success") {
+                    handleAnalysisResult(result);
+                } else {
+                    alert("動画の解析に失敗しました。");
                 }
-            });
+            } catch (err) {
+                console.error("アップロードエラー:", err);
+                alert("サーバーに接続できませんでした。");
+            }
         });
     }
 
     loadSettings();
-});
-
-// サイドパネルを開く関数
-const openSidePanel = async () => {
-    try {
-        await chrome.sidePanel.open({windowId: chrome.windows.WINDOW_ID_CURRENT});
-    } catch (error) {
-        console.error('サイドパネルを開けませんでした:', error);
-    }
-};
-
-// 分析結果を処理する関数
-const handleAnalysisResult = (result: any) => {
-    const dangerLevel = result.analysis_result?.risk_level || "低";
-    const issues: string[] = [];
-    let specificText = "";
-
-    if (result.status === "success" && result.analysis_result) {
-        if (result.analysis_result.violations?.length > 0) {
-            issues.push(...result.analysis_result.violations.map((v: any) => {
-                let issueText = `${v.type}: ${v.description}`;
-                if (v.severity) {
-                    issueText += ` (重要度: ${v.severity})`;
-                }
-                if (v.context_analysis) {
-                    issueText += `\n文脈分析: ${v.context_analysis}`;
-                }
-                return issueText;
-            }));
-
-            if (result.analysis_result.violations[0].detected_text) {
-                specificText = result.analysis_result.violations[0].detected_text;
-            }
-        }
-
-        if (result.analysis_result.recommendations?.length > 0) {
-            issues.push(...result.analysis_result.recommendations.map((r: string) => `推奨: ${r}`));
-        }
-
-        if (result.analysis_result.summary) {
-            issues.unshift(`要約: ${result.analysis_result.summary}`);
-        }
-    }
-
-    if (issues.length === 0) {
-        issues.push("問題は検出されませんでした");
-    }
-
-    const warning = createWarningElement(
-        dangerLevel,
-        issues,
-        specificText,
-        new Date()
-    );
-
-    if (warningsContainer) {
-        warningsContainer.prepend(warning);
-        requestAnimationFrame(() => {
-            warning.classList.add('show');
-            setActiveView('empty');
-        });
-    }
-};
-
-// メッセージリスナーを更新
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "ANALYSIS_RESULT") {
-        handleAnalysisResult(message.result);
-        sendResponse({success: true});
-        return true;
-    }
 });
